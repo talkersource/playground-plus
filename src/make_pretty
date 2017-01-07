@@ -1,0 +1,46 @@
+#
+# Make_Pretty
+# Written by Silver (15.12.97)
+#
+# This batch file makes a backup of your src files (just in case)
+# and then formats every .c file nicely.
+#
+# You can change the flags that "indent" uses by editing the ident line
+# although the one here should suffice
+#
+
+cd ~/pgplus/src
+
+echo "Make_Pretty 1.0"
+echo "A batch file written by Silver (15.12.1997)"
+echo " "
+echo "Backing up your code (just in case)"
+
+rm -f backup.tar
+rm -f backup.tar.gz
+tar cf backup.tar *.c
+
+echo "Compressing it (to save space)"
+gzip backup.tar
+
+for id in `ls *.c`
+do
+  echo "Tidying up '$id' ..."
+  indent -bli0 -i2 -nbad -npsl -npcs -cli2 $id -o mp_temp
+  mv mp_temp $id
+done
+
+echo "Finished"
+echo " "
+echo "It is recommended you do a 'make install' now to check that the code"
+echo "still compiles fine. If in the unlikely event that it doesn't then"
+echo "you can restore the src files from the 'backup.tar.gz' file with"
+echo "the command 'tar zxvf backup.tar.gz'"
+echo " "
+
+
+#
+#they say beauty is in the eye of the beholder.... heres mine..
+#  indent -kr -bad -bl -pcs -cs -di13 -i3 -nce -l75 -bli0 $id mp_temp
+#                                                ~phypor
+

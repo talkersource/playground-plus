@@ -1,0 +1,24 @@
+ls > .files
+ls include/ >> .files
+sort .files > .files_temp
+mv .files_temp .files
+
+rm -f .tmp
+echo "Searching all code for '$1' ..."
+for id in `cat .files`
+do
+  echo " " >> .tmp
+  if [ -e $id ]
+  then
+    echo "**** $id ****" >>.tmp
+    echo " " >>.tmp
+    more $id | grep -n -i $1 >>.tmp
+  else
+    echo "**** include/$id ****" >>.tmp
+    echo " " >>.tmp
+    eval more include/$id | grep -n -i $1 >>.tmp
+  fi
+done
+
+less .tmp
+rm -f .tmp
