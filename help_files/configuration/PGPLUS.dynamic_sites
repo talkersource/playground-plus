@@ -1,0 +1,25 @@
+
+ Running PG+ on dynamic IP's
+ ---------------------------
+
+Not something I would personally recommend but there seems to be an
+increase in the number of people running talkers on sites with dynamic
+ips. This would cause a problem with the intercom because when the site
+changed ip a new entry would be created in everyone elses lists so
+eventually filling up their database with junk.
+
+If you run on a dynamic site then you should type:
+
+  intercom dynamic <address>
+
+where <address> is the address that people can ALWAYS telnet to
+irrespective of your ip to connect to your talker. This will allow the
+intercom to show the correct address and continually show your talker as
+up.
+
+This creates a text file in pgplus/files/intercom.dynamic which contains
+your site. If you accidently create this then you should kill the intercom
+and then delete this file.
+
+	Richard Lawrence
+	26th September 1999

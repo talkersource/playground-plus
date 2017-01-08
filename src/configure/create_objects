@@ -1,0 +1,180 @@
+##########################################################################
+#
+# Playground Plus configuration script
+# copyright (c) Richard Lawrence 1999
+#
+# This script is distributed for and ONLY for the Playground Plus package. 
+# It may not be used in any other distribution without the prior permission
+# of the author. No reply to your request does NOT constitute permission.
+#
+##########################################################################
+
+# create_objects
+# a script to work out what objects are require for pg+'s makefile
+# by Richard 'Silver' Lawrence
+
+PG_VERSION=`egrep "\#define PG_VERSION" include/config.h | cut -d"\"" -f2`
+
+flag=0
+
+clear
+
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ DEPENDENCIES AND MAKEFILE OBJECTS
+
+ This configuration script will now calculate the makefile dependencies
+ (which files should be recompiled when others are modified) and the
+ makefile objects (which files are required for the main executable) for
+ your talker.
+
+*END*
+
+#
+# makefile objects
+#
+
+sleep 1
+
+line="     "
+count=`ls *.c | grep -v -f configure/object_exclusions | wc -l | awk '{ print $1 }'`
+
+while [ "$count" != "0" ]
+do
+  line="${line}."
+  count=`expr $count - 1`
+done
+echo "   Working out makefile objects"
+sleep 1
+echo -e "$line\r\c"
+pcdone="     "
+
+echo -e "#\n# Makefile objects created automatically by \"make depend\"\n# DO NOT EDIT\n#\n" > .Makefile_objects
+
+echo "glue.c" > .tmp
+
+ls *.c | grep -v -f configure/object_exclusions | while read id
+do
+  if [ -z "`egrep "^(void|int) main[ ]*\(.*\)" $id`" ]
+  then
+    echo "$id" >> .tmp
+  fi
+  pcdone="$pcdone#"
+  echo -e "$pcdone\r\c"
+done
+
+sort .tmp > .tmp2
+mv .tmp2 .tmp
+
+# make a list of all .c files that are #included from the list above
+
+rm -f .tmp-called
+for id in `cat .tmp`
+do
+  cat $id | grep "\#include \".*\.c\"" | cut -d'"' -f2 >> .tmp-called  
+done
+
+# now remove the ones in .tmp-called from .tmp
+
+cat .tmp | grep -v -f .tmp-called > .objects
+rm -f .tmp .tmp-called
+
+cat .objects | while read id
+do
+  if [ "$flag" = "0" ]
+  then
+    echo -n "OBJECTS = " >> .Makefile_objects
+    flag=1
+  else
+    echo -n "          " >> .Makefile_objects
+  fi
+  echo "\$(OBJECT_LOCATION)/`echo $id | cut -d"." -f1`.o \\" >> .Makefile_objects
+done
+rm -f .objects
+
+
+#
+# makefile dependencies
+#
+
+line="     "
+count=`ls *.c | wc -l | awk '{ print $1 }'`
+
+while [ "$count" != "0" ]
+do
+  line="${line}."
+  count=`expr $count - 1`
+done
+
+echo -e "\n\n"
+echo "   Working out dependencies"
+sleep 1
+echo -e "$line\r\c"
+pcdone="     "
+
+echo -e "#\n# Dependencies created automatically by \"make depend\"\n# DO NOT EDIT\n#\n" > .depend
+
+# if we don't do this dependancies fail
+configure/get_dir > /dev/null
+
+rm -f .rawdep
+ls *.c | while read id
+do
+  gcc -M $1 $id >> .rawdep 2>/dev/null
+  pcdone="${pcdone}#"
+  echo -e "$pcdone\r\c"
+done
+sed -e '1,$s/^[a-z]/$(OBJECT_LOCATION)\/&/' .rawdep >> .depend 
+rm -f .rawdep
+
+sleep 1
+
+echo -e "\n\n"
+
+clear
+
+if [ ! -f ../bin/talker ]
+then
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ COMPILE TALKER
+
+ `grep "^talker_name" ../soft/config.msg | cut -f2-` is now ready to be compiled.
+
+ This will take from between 2 and 15 minutes depending on the speed and
+ load of your server. Once you have compiled your talker then you can boot
+ it up and have people using it.
+
+ Type:
+
+     make install        - to compile all parts of your talker
+     ../bin/angel &      - to boot up your talker on port `grep "^port" ../soft/config.msg | cut -f2-`
+
+ If you have any problems or questions please consult the help files which
+ are located in the pgplus/help_files directory.
+
+*END*
+else
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ DEPENDANCIES AND OBJECTS
+
+ All dependancies and objects have now been updated.
+
+    To compile PG+ type "make install" now.
+    To compile only the talker type "make quick".
+
+    Don't edit the "include/autoconfig.h" file, instead use
+    "make config" to select the changes you want.
+
+*END*
+fi

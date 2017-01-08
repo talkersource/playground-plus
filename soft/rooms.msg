@@ -17,7 +17,7 @@ def_entermsg:	goes to sleep in %s's room.
 # Default room desc, needs exactly one %s where name is placed
 #
 def_desc:	
-	   A small but cosy bedroom belonging to %s.
+	   A small but cozy bedroom belonging to %s.
 	   Don't you think you should give it a better description?
 	
 

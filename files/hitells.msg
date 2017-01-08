@@ -13,6 +13,7 @@ adm     : Specific termial type that isn't very common
 hp2392  : Specific termial type that isn't very common  
 wyse-30 : Specific termial type that isn't very common 
 tvi912  : Specific termial type that isn't very common  
+none    : If you don't want any hilighting or colour
 
 If you're unsure, try vt100 -- this seems to work for the most people.
 Once on the program, you can change this setting with the HITELLS command

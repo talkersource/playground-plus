@@ -12,24 +12,29 @@ be inbetween the arrows, the process numbers *will* be different and you
 may not have all 4 listed depending whether you chose to use the intercom 
 or ident):
 
- 2255  p4 S N  0:00 -=> Playground+ <=- Guardian Angel watching port 7777 
- 2256  ?  S N  0:00 -=> Playground+ <=- Talk Server on port 7777 
+ 2255  p4 S N  0:00 -=> Playground+ <=- Guardian Angel watching port 9999 
+ 2256  ?  S N  0:00 -=> Playground+ <=- Talk Server on port 9999 
  2257  ?  S N  0:00 -=> Playground+ <=- Ident server 
  2258  ?  S N  0:00 -=> Playground+ <=- Intertalker communication server 
 
-Yay! Okay, now is time to log in and sort out your character. So telnet to
-the correct port (in our demo its 7777) with
+You may find that you don't have the intercom or ident running. This could
+be because you've disabled them or, in the case of the intercom, you
+haven't changed your intercom abbreviation from "pgp" which means that the
+intercom won't even think of booting up until you change it :o)
 
-  telnet 0 7777
+Yay! Okay, now is time to log in and sort out your character. So telnet to
+the correct port (in our demo its 9999) with
+
+  telnet 0 9999
 
 and log in as usual. When you get to the message:
 
   You are attempting to login as a hard coded admin.
   To continue, you must enter the HCADMIN access password.
 
-enter in the password that you defined in the "make config" and (provided
-you got it right) you'll enter the code. On the way past you'll have
-probably noticed the words:
+enter in the password that you defined in the softconfig file and
+(provided you got it right) you'll enter the code. On the way past you'll
+have probably noticed the words:
 
   Eeeeeeek ! No saved bits !
 
@@ -62,7 +67,9 @@ only one then just copy connect1.msg to connect2.msg and connect3.msg.
 
 If you've defined "do_email_check" in soft/config.msg then you'll
 definately need to edit the "email_welcome.msg" file since this contains
-the message that is sent to people when they change their address.
+the message that is sent to people when they change their address. I've
+lost count of the number of talkers that have set me a message which says
+"Welcome to <<setme>>". Duh!
 
 You'll probably notice that the files make extensive use of the &t symbol
 and the &e symbol. When viewed through the talker these are replaced
@@ -104,6 +111,6 @@ Finally I'll leave you with some words of wisdom from Mike Bourdaa (traP):
 Best of luck with your talker.
 
 		Richard Lawrence (aka Silver)
-		04 June 1998
+		26 September 1999
 
 

@@ -1,6 +1,8 @@
+#!/bin/sh
 #
 # Make_Pretty
 # Written by Silver (15.12.97)
+# Updated by blimey (09.08.98)
 #
 # This batch file makes a backup of your src files (just in case)
 # and then formats every .c file nicely.
@@ -9,24 +11,23 @@
 # although the one here should suffice
 #
 
-cd ~/pgplus/src
+if [ ! -e .indent.pro -a ! -e $HOME/.indent.pro ] ; then
+  INDENT_OPTIONS="-bli0 -i2 -nbad -npsl -npcs -cli2"
+fi
 
-echo "Make_Pretty 1.0"
+echo "Make_Pretty 1.1"
 echo "A batch file written by Silver (15.12.1997)"
-echo " "
+echo ""
 echo "Backing up your code (just in case)"
 
-rm -f backup.tar
-rm -f backup.tar.gz
-tar cf backup.tar *.c
+rm -f backup.tgz
+tar -cf - *.[ch] | gzip -c > backup.tgz
 
-echo "Compressing it (to save space)"
-gzip backup.tar
-
-for id in `ls *.c`
+trap "rm -f mp_temp" SIGTERM SIGHUP
+for id in *.c
 do
   echo "Tidying up '$id' ..."
-  indent -bli0 -i2 -nbad -npsl -npcs -cli2 $id -o mp_temp
+  indent $INDENT_OPTIONS $id -o mp_temp
   mv mp_temp $id
 done
 
@@ -34,8 +35,8 @@ echo "Finished"
 echo " "
 echo "It is recommended you do a 'make install' now to check that the code"
 echo "still compiles fine. If in the unlikely event that it doesn't then"
-echo "you can restore the src files from the 'backup.tar.gz' file with"
-echo "the command 'tar zxvf backup.tar.gz'"
+echo "you can restore the src files from the 'backup.tgz' file with"
+echo "the command 'gzip -dc backup.tgz | tar -xf -'"
 echo " "
 
 

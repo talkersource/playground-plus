@@ -1,0 +1,5 @@
+MF_DATE="27.09.1999"
+MF_OS="BSDI"
+MF_AUTHOR="Robert Reese (Redline)"
+MF_OS_CFLAGS="-DBSDISH -DBSD3"
+MF_LIBS=""

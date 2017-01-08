@@ -1,0 +1,6 @@
+MF_DATE="30.07.1999"
+MF_OS="NetBSD"
+MF_AUTHOR="Geoffrey Swift (blimey)"
+MF_OS_CFLAGS="-DBSDISH -DNETBSD"
+MF_LIBS=""
+

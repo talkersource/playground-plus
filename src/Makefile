@@ -4,5 +4,5 @@
 #
 
 install:
-	`which bash` configure/setup
+	bash configure/first_run
 

@@ -20,18 +20,18 @@ talker_name:	Playground Plus
 #       * If you change this whilst the talker is running it will change
 #         the port!! Make sure that you set it to a port that is not in
 #         use otherwise the talker will come crashing down!
-port:		7777
+port:	7777
 
 #
 # The admininistrators or talkers email address
 #
-talker_email:	pgplus@pgplus.ewtoo.org
+talker_email:	pgplus@ewtoo.org
 
 #
 # These are the names of the hard coded admins, seperated by a single space
 # (you may have any number of names you wish, keep em on the same line tho)
 #
-hcadmins:       coder sysop admin
+hcadmins:	coder sysop admin
 
 #
 # Hard coded password for hc admin login without established chars
@@ -52,7 +52,7 @@ intercom_abbr:	pgp
 # a DNS alias of 'goodtalk.org' then you'll want to set the variable
 # below to 'goodtalk.org'
 #
-site_alias:
+site_alias:	
 
 
 
@@ -95,6 +95,14 @@ emergency_len:	3
 #
 time_format:	uk
 
+#
+# These are the options sent to the 'ps' shell command when 'psx'
+# is used on the talker... placed here so that machines that use
+# diffrent args can be tailored to fit...
+# If you do not want to allow the 'psx' command to be used from
+# the talker, set this to "off"  (without the quotes)
+#
+ps_options:	-uxc
 
 #
 # This is the command that is sent to system() to send off an email
@@ -261,7 +269,7 @@ use_truespod:	no
 #                  likely to trigger. Recommended is 7 and less than above)
 # spam_eject     - number of mins a player is sneezed if they spam
 #
-nospam:		on
+nospam:		off
 spam_repeat:	12
 spam_different:	7
 spam_eject:	1
@@ -280,6 +288,11 @@ swear_filter:	yes
 # Allow ppl to be fingered from login?
 #
 login_finger:	yes
+
+#
+# Have the talker screen newbies from boot (see help screen online for details)
+#
+screening:	no
 
 #
 # Automatically close to newbies when no sus are on?
@@ -310,7 +323,7 @@ wall_divorce:	no
 idle_bad:	yes
 
 #
-# Are admin exempt from idleing out?
+# Are admin exempt from idling out?
 #
 admin_ok_idle:	no
 
@@ -326,7 +339,7 @@ can_force:	no
 verbose_multis:	yes
 
 #
-# Do we inform about a multi leaving existance?
+# Do we inform about a multi leaving existence?
 #
 multi_inform:	no
 
@@ -345,6 +358,11 @@ show_when_xd:	no
 # Do you want to 'look' when reconnecting?
 #
 reconnect_look:	yes
+
+#
+# Do we allow staff members to recap other ppls names?
+#
+sus_can_recap:	no
 
 #
 # Do we allow players to set their names in all caps?
@@ -377,10 +395,25 @@ main_chan:	<main>
 spod_chan:	<spod>
 
 #
+# Tag for debug channel
+#
+debug_chan:	<debug>
+
+#
 # If you have the hcadmin channel, this is the tag for it
 #
 hc_chan:	<hc>
 
+#
+# Intercom channel (IChan) tag (code by Silver, idea by traP)
+#
+# NOTE: This tag is specific to your talker and modifying it will
+#       NOT affect the tags of other talkers using IChan. (in other words
+#       feel free to change it, people on other talkers won't notice if
+#       you have or haven't)
+#
+
+intercom_chan:  <ichan>
 
 ##############################################################################
 # Slots configs

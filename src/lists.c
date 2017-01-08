@@ -106,7 +106,7 @@ void delete_entry(saved_player * sp, list_ent * l)
     }
     else
       scan = scan->next;
-  log("error", "Tried to delete list entry that wasn't there.\n");
+  log("error", "Tried to delete list entry that wasn't there.");
 }
 
 
@@ -128,7 +128,7 @@ void tmp_comp_list(saved_player * sp)
     if (!l->name[0])
     {
       LOGF("error", "Bad list entry on compress, deleted (%s).",
-                    sp->lower_name);
+	   sp->lower_name);
       delete_entry(sp, l);
     }
     else
@@ -326,6 +326,7 @@ list_ent *create_entry(player * p, char *name)
 
   l = (list_ent *) MALLOC(sizeof(list_ent));
   strncpy(l->name, name, MAX_NAME - 3);
+  l->name[MAX_NAME - 3] = 0;
   e = find_list_entry(p, "everyone");
 #ifdef ROBOTS
   if (e && strcasecmp(l->name, "sus") && strcasecmp(l->name, "newbies")
@@ -498,13 +499,13 @@ void change_list_absolute(player * p, char *str)
       str++;
     if (*oldstack && (dummyname = check_legal_entry(p, oldstack, 0)))
     {
-      sprintf(msg, " Flag set for '%s'\n", dummyname);
-      tell_player(p, msg);
       l = find_list_entry(p, dummyname);
       if (!l)
 	l = create_entry(p, dummyname);
       if (l)
       {
+        sprintf(msg, " Flag set for '%s'\n", dummyname);
+        tell_player(p, msg);
 	l->flags = change;
 	count++;
 	if (message_string)
@@ -703,13 +704,13 @@ void toggle_list(player * p, char *str)
     lower_case(oldstack);
     if (*oldstack && (dummyname = check_legal_entry(p, oldstack, 0)))
     {
-      sprintf(msg, " Flag toggled for '%s'\n", dummyname);
-      tell_player(p, msg);
       l = find_list_entry(p, dummyname);
       if (!l)
 	l = create_entry(p, dummyname);
       if (l)
       {
+        sprintf(msg, " Flag toggled for '%s'\n", dummyname);
+        tell_player(p, msg);
 #ifdef ALLOW_MULTIS
 	if (change & FRIEND)
 	{
@@ -2025,7 +2026,7 @@ int test_receive(player * p)
     sys_flags |= FAILED_COMMAND;
     return 0;
   }
-  if ((p->tag_flags & BLOCK_FRIENDS || (l && l->flags & FRIENDBLOCK))
+  if (((p->tag_flags & BLOCK_FRIENDS || (l && l->flags & FRIENDBLOCK)))
   && (!l || !(l->flags & NOISY)) && (sys_flags & (FRIEND_TAG | OFRIEND_TAG)))
   {
     sys_flags |= FAILED_COMMAND;
@@ -2134,6 +2135,7 @@ void do_inform(player * p, char *tmsg)
 
   /* we were passed soft_msg memeory, lets get our own now ... */
   strncpy(msg, tmsg, 513);
+  msg[513] = 0;
 
   for (scan = flatlist_start; scan; scan = scan->flat_next)
   {
@@ -3111,6 +3113,13 @@ void customize_colors(player * p, char *str)
   }
   oldstack = stack;
 
+  if (strstr(str, "def"))
+  {
+    strcpy(p->colorset, get_pdefaults_msg("colorset"));
+    TELLPLAYER(p, " Colors set to default.\n");
+    return;
+  }
+
   str2 = next_space(str);
   if (*str2)
   {
@@ -3122,7 +3131,8 @@ void customize_colors(player * p, char *str)
   {
     /* The original used a nasty set of nested if's - very very very bad
        programming practise, this is better :o) */
-    ADDSTACK(" Format: colorize <section> <Color character>\n");
+    ADDSTACK(" Format: colorize <section> <Color character>\n"
+             " (or \"colorize default\" to reset all colours");
     ADDSTACK(" Sections: tell, room, shout, main, zchan");
     if (p->residency & SPOD)
       ADDSTACK(", spod");
@@ -3221,7 +3231,8 @@ void customize_colors(player * p, char *str)
   }
   else
   {
-    tell_player(p, " Format: colorize <section> <Color character>\n");
+    tell_player(p, " Format: colorize <section> <Color character>\n"
+             " (or \"colorize default\" to reset all colours");
     tell_player(p, " Sections: tell, room, shout, main, zchan");
     if (p->residency & SPOD)
       tell_player(p, ", spod");
@@ -3353,4 +3364,113 @@ void prefer(player * p, char *str)
   }
   toggle_list(p, oldstack);
   stack = oldstack;
+}
+
+
+
+/*
+   one talker i converted had existant list entries that were farged...
+   i wrote this to fix them... its possible (if there are many 
+   corruptions) that youll have to run it multiple times on a player.
+   ~phypor
+ */
+
+
+void fix_list(player * p, char *str)
+{
+  int count = 0, fixed = 0, dt = 0;
+  player *p2, dummy;
+  list_ent *l, *c, tp;
+  char *ptr;
+
+  memset(&dummy, 0, sizeof(player));
+
+  if (!*str)
+  {
+    tell_player(p, " Format: fix_list <player>\n");
+    return;
+  }
+  lower_case(str);
+  p2 = find_player_global_quiet(str);
+  if (!p2)
+  {
+    strcpy(dummy.lower_name, str);
+    dummy.fd = p->fd;
+    if (!load_player(&dummy))
+    {
+      tell_player(p, " Noone to fix ...\n");
+      return;
+    }
+    p2 = &dummy;
+  }
+  if (!p2->saved)
+  {
+    TELLPLAYER(p, " '%s' has no saved player, so %s has no list to fix.\n",
+	       p2->name, gstring(p2));
+    return;
+  }
+  count = count_list(p2);
+  TELLPLAYER(p, "It appears %s is using %d of %d list entries.\n",
+	     p2->name, count, p2->max_list);
+
+  /* use this as a dummy to get it to handle the top one as well */
+  memset(&tp, 0, sizeof(list_ent));
+  tp.next = p2->saved->list_top;
+
+  for (l = &tp; l->next; l = l->next)
+  {
+    c = l->next;
+    dt = 0;
+    if (!*(c->name))
+    {
+      TELLPLAYER(p, " Corruption found, empty entry name.\n");
+      dt++;
+    }
+    else if (strlen(c->name) < 2)
+    {
+      TELLPLAYER(p, " Corruption found, length too short.\n"
+		 "   Length %d, [%s]\n", strlen(c->name), c->name);
+      dt++;
+    }
+    else if (strlen(c->name) > MAX_NAME - 2)
+    {
+      TELLPLAYER(p, " Corruption found, length overly long.\n"
+		 "   Length %d, [%s]\n", strlen(c->name), c->name);
+      dt++;
+    }
+    else
+      for (ptr = c->name; *ptr; ptr++)
+	if (!isalpha(*ptr))
+	{
+	  TELLPLAYER(p, " Corruption found, non alphas in name.\n"
+		     "   '%c' (%d), [%s]\n", *ptr, *ptr, c->name);
+	  dt++;
+	  break;
+	}
+
+    if (!dt)
+      continue;
+    fixed++;
+    if (l == p->saved->list_top)
+      p->saved->list_top = c->next;
+    else
+      l->next = c->next;
+    FREE(c);
+  }
+  if (!fixed)
+  {
+    TELLPLAYER(p, " No corruptions found in list for '%s'\n", p2->name);
+    return;
+  }
+  TELLPLAYER(p,
+	     " Fixed %d corruptions in list for '%s'\n"
+	" You should now vlist %s and see if there are still corruptions,\n"
+      " If so, run this again on them.\n", fixed, p2->name, p2->lower_name);
+
+  LOGF("fixed", "%s fixes %d corruptions in %s's list (%d/%d)",
+       p->name, fixed, p2->name, count, p2->max_list);
+
+  if (&dummy == p2)
+    p2->location = (room *) - 1;
+  save_player(p2);
 }

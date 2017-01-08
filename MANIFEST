@@ -13,6 +13,7 @@ backup.code			Backup script
 boot				Boot script
 mailer				Mass mailing script
 pg2pgplus			Conversion script
+tarball				Tarball script
 
 doc:
 advanced.doc			Advanced SU commands
@@ -101,7 +102,9 @@ history.c			History code
 ident_client.c			The ident client
 ident_server.c			The ident server (run seperately from talker)
 intercom.c			The intercom (run seperately from talker)
+intercom2.c			Ichan code (for intercom server)
 intercom_glue.c			The intercom client
+intercom_glue2.c		Ichan code (for intercom client)
 items.c				Items code
 last.c				Last site tracing
 lists.c				Players list entries & manipulation
@@ -134,8 +137,14 @@ Configure			Configure script
 Configure.defaults		Configure defaults
 Configure.help			Configure help
 Configure.options		Configure options
-oldsetup			Setup (need to chose O/S)
-setup				Setup (automatic detection - called first)
+Makefile.template		The template for all makefiles
+configure_code			Wrapper for configure script
+configure_softmsg		Script for setting up softmessages
+create_objects			Script to generate dependancies & objects
+first_run			Licence for first ever run of the scripts
+get_dir				Gets the talker directory for compilation
+object_exclusions		Files not part of the main talker executable
+setup				Main setup script
 
 src/include:
 admin.h				General header files			
@@ -160,5 +169,5 @@ un.h				:
 version.h			The time the code was compiled
 
 
-Last updated 18.06.1998
-Some details may be innacurate.
+Last updated 26.10.1999
+Some details may be inaccurate.

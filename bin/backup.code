@@ -12,20 +12,18 @@
 # Change directory and get rid of unecessary files
 #
 
-cd ~/pgplus/backup/
+cd backup
 rm -f ../files/backup_write
 rm -f ../files/rooms/keys.b
 
 #
-# Move the existing files around so we have up to 7 days backups!
+# Move the existing files around so we have up to 9 days backups!
 #
 
-mv backup06.tar.gz backup07.tar.gz
-mv backup05.tar.gz backup06.tar.gz
-mv backup04.tar.gz backup05.tar.gz
-mv backup03.tar.gz backup04.tar.gz
-mv backup02.tar.gz backup03.tar.gz
-mv backup01.tar.gz backup02.tar.gz
+for id in 8 7 6 5 4 3 2 1
+do
+  mv -f backup0${id}.tar.gz backup0`expr $id + 1`.tar.gz
+done
 
 #
 # Now generate new backup file as backup1.tar. This is not compressed
@@ -34,7 +32,7 @@ mv backup01.tar.gz backup02.tar.gz
 #
 
 cd ..
-tar cf backup/backup01.tar files/notes files/players files/rooms files/items files/whois
+tar cf backup/backup01.tar files/notes files/players files/rooms files/items files/whois files/socials files/news
 
 #
 # Snooze for 30 seconds just to check that all the files have been
@@ -58,6 +56,6 @@ gzip -9 backup01.tar
 # cp backup/backup<number>.tar.gz .
 # tar zxvf backup<number>.tar.gz
 #
-# You *must* copy it into the ~/talker directory otherwise it
+# You *must* copy it into the ~/pgplus directory otherwise it
 # wont be overwritten! 
 #

@@ -158,7 +158,9 @@ void privs(player * p, char *str)
     if (p->residency & SPECIALK)
       ADDSTACK(" You can fashion together original socials.\n");
     if (priv & SPOD)
-      ADDSTACK(" You are a spod (but you already KNEW that)\n");
+      ADDSTACK(" You are a spod (but you already KNEW that).\n");
+    if (priv & DEBUG)
+      ADDSTACK(" You can see the debug channel.\n");
     if (priv & NO_TIMEOUT)
       ADDSTACK(" You will never time-out.\n");
     if (priv & WARN)
@@ -213,7 +215,7 @@ void privs(player * p, char *str)
       if (priv & LIST)
 	ADDSTACK("%s has a list.\n", name);
       else
-	ADDSTACK("%s %s no list.\n", name);
+	ADDSTACK("%s hasno list.\n", name);
 
       if (priv & ECHO_PRIV)
 	ADDSTACK("%s can echo.\n", name);
@@ -240,6 +242,9 @@ void privs(player * p, char *str)
 
       if (priv & SPOD)
 	ADDSTACK("%s is a sad spod.\n", name);
+
+      if (priv & DEBUG)
+	ADDSTACK("%s can see the debug channel.\n", name);
 
       if (p2->residency & MINISTER)
 	ADDSTACK("%s can perform net-marriages.\n", name);
@@ -284,6 +289,12 @@ void privs(player * p, char *str)
 
       if (priv & HOUSE)
 	ADDSTACK("%s was rode hard and put up wet.\n", name);
+
+
+      stack += sprintf(stack, "%s            " RES_BIT_HEAD "\n"
+		       "Residency   %s\n", LINE,
+		       privs_bit_string(p2->residency));
+
     }
   }
   /* finish off the end of the chunk of data */
@@ -404,9 +415,8 @@ void friend_finger(player * p)
 void pinfo_saved_player(player * p, char *str)
 {
   player dummy;
-  char *oldstack, top[70];
+  char *oldstack = stack, top[70];
 
-  oldstack = stack;
   memset(&dummy, 0, sizeof(player));
 
   strcpy(dummy.lower_name, str);
@@ -433,9 +443,7 @@ void pinfo_saved_player(player * p, char *str)
       }
       break;
   }
-  stack = strchr(stack, 0);
 
-  oldstack = stack;
 
   sprintf(top, "Pinfo for %s (logged out)", dummy.name);
   pstack_mid(top);
@@ -809,12 +817,6 @@ void su_examine(player * p, char *str)
 	      p2->name, p2->num_warned);
     }
     stack = strchr(stack, 0);
-    if (p2->idled_out_count)
-    {
-      sprintf(stack, "%s has idled out of the program %d times.\n",
-	      p2->name, p2->idled_out_count);
-    }
-    stack = strchr(stack, 0);
     if (p2->num_ejected)
     {
       sprintf(stack, "%s has kicked %d gits off the program.\n",
@@ -865,7 +867,8 @@ void newfinger(player * p, char *str)
   }
 #endif
 
-  if (!strcasecmp(str, "friends"))
+  /* if (!strcasecmp(str, "friends")) -- blimey */
+  if (p && p->location && !strcasecmp(str, "friends"))
   {
     friend_finger(p);
     return;
@@ -874,6 +877,11 @@ void newfinger(player * p, char *str)
     p2 = p;
   else
   {
+    if (reserved_name(str))
+    {
+      tell_player(p, " That is a reserved name.\n");
+      return;
+    }
     p2 = find_player_absolute_quiet(str);
     if (!p2)
     {
@@ -881,7 +889,16 @@ void newfinger(player * p, char *str)
       lower_case(dummy.lower_name);
       dummy.fd = p->fd;
       if (!load_player(&dummy))
-	return;
+      {
+	if (!p->location)
+        {
+	  if (!*str)
+	    tell_player(p, " You need to specify a name in order to finger someone!\n");
+	  else
+ 	    TELLPLAYER(p, " No resident of the name '%s' found in files.\n", str);
+        }
+	  return;
+      }
 
       p2 = &dummy;
     }
@@ -960,7 +977,7 @@ void newfinger(player * p, char *str)
     }
     else
     {
-      ADDSTACK("Date last logged on : %s\n",
+      ADDSTACK("Date last logged on : %s %s\n",
 	       convert_time(p2->saved->last_on), datastring);
     }
   }
@@ -983,7 +1000,7 @@ void newfinger(player * p, char *str)
     if (partic < 100)
       ADDSTACK("Chronic spod factor : %.2f%%\n", partic);
     else
-      ADDSTACK("Chronic spod factor : 100%\n");
+      ADDSTACK("Chronic spod factor : 100%%\n");
   }
   if (p2->age)
     ADDSTACK("Years of age        : %d\n", p2->age);
@@ -992,7 +1009,9 @@ void newfinger(player * p, char *str)
   if (p2->system_flags & NEW_MAIL)
     ADDSTACK("Mailbox status      : New mail received\n");
 
-  if (p2->residency && (p == p2 || p->residency & (LOWER_ADMIN | ADMIN)
+  /* blimey -- added check for p->location, in case someone is using
+     finger from the login prompt */
+  if (p->location && p2->residency && (p == p2 || ((p->residency & (LOWER_ADMIN | ADMIN)) && p->location)
 			|| !(p2->custom_flags & PRIVATE_EMAIL) ||
 	       (l && l->flags & FRIEND && p2->custom_flags & FRIEND_EMAIL)))
   {
@@ -1018,7 +1037,7 @@ void newfinger(player * p, char *str)
     ADDSTACK("ICQ number          : %d\n", p2->icq);
   if (p2->hometown[0])
     ADDSTACK("Place of residency  : %s^N \n", p2->hometown);
-  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN))
+  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN | SPOD))
     ADDSTACK("Online Positions    : ");
   if (p2->residency & SPOD)
     ADDSTACK("Spod ");
@@ -1032,7 +1051,7 @@ void newfinger(player * p, char *str)
     ADDSTACK("Administrator ");
   else if (p2->residency & SU)
     ADDSTACK("Staff ");
-  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN))
+  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN | SPOD))
     ADDSTACK("\n");
 
   if (p2->system_flags & (MARRIED | FLIRT_BACHELOR | ENGAGED) || !(p2->system_flags & BACHELOR_HIDE))
@@ -1096,7 +1115,9 @@ void newfinger(player * p, char *str)
   stack = oldstack;
 
   if (config_flags & cfSHOWXED)
-    if (p != p2 && p2 != &dummy && !(p->residency & (ADMIN | CODER | HCADMIN)))		/* gotcha phy!--Silver */
+    if (p->location && p != p2 && p2 != &dummy &&
+	!(p->residency & (ADMIN | CODER | HCADMIN)) &&
+	strcasecmp(p->name, "someone@intercom"))
       TELLPLAYER(p2, " (%s just took a peek at your finger file)\n",
 		 p->name);
 }
@@ -1260,7 +1281,7 @@ void newexamine(player * p, char *str)
   if (p2->ttt_win + p2->ttt_loose + p2->ttt_draw != 0)
     ADDSTACK("Tic Tac Toe           : %d wins, %d losses, %d ties\n", p2->ttt_win, p2->ttt_loose, p2->ttt_draw);
 
-  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN))
+  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN | SPOD))
     ADDSTACK("Online Positions      : ");
   if (p2->residency & SPOD)
     ADDSTACK("Spod ");
@@ -1274,7 +1295,7 @@ void newexamine(player * p, char *str)
     ADDSTACK("Administrator ");
   else if (p2->residency & SU)
     ADDSTACK("Staff ");
-  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN))
+  if (p2->residency & (BUILDER | MINISTER | SPECIALK | SU | ADMIN | SPOD))
     ADDSTACK("\n");
 
   if (p2->system_flags & (MARRIED | FLIRT_BACHELOR | ENGAGED)
@@ -1358,7 +1379,7 @@ void newexamine(player * p, char *str)
   stack = oldstack;
 
   if (config_flags & cfSHOWXED)
-    if (p != p2 && !(p->residency & (ADMIN | CODER | HCADMIN)) && strcmp(p->lower_name, "phypor"))
+    if (p != p2 && !(p->residency & (ADMIN | CODER | HCADMIN)) && strcasecmp(p->name, "someone@intercom"))
       TELLPLAYER(p2, " (%s just took a peek at your examine)\n",
 		 p->name);
 
@@ -1366,24 +1387,24 @@ void newexamine(player * p, char *str)
 
 /* Dynamic Staff List by Silver */
 
-int    most_highest_priv ( saved_player * sp )
+int most_highest_priv(saved_player * sp)
 {
-   if (sp->residency & CODER)
-      return CODER;
-   if (sp->residency & HCADMIN)
-      return HCADMIN;
-   if (sp->residency & ADMIN)
-      return ADMIN;
-   if (sp->residency & LOWER_ADMIN)
-      return LOWER_ADMIN;
-   if (sp->residency & ASU)
-      return ASU;
-   if (sp->residency & SU)
-      return SU;
-   if (sp->residency & PSU)
-      return PSU;
-   
-   return BASE;
+  if (sp->residency & CODER)
+    return CODER;
+  if (sp->residency & HCADMIN)
+    return HCADMIN;
+  if (sp->residency & ADMIN)
+    return ADMIN;
+  if (sp->residency & LOWER_ADMIN)
+    return LOWER_ADMIN;
+  if (sp->residency & ASU)
+    return ASU;
+  if (sp->residency & SU)
+    return SU;
+  if (sp->residency & PSU)
+    return PSU;
+
+  return BASE;
 }
 
 /* thought this would make things nice... ~phypor */
@@ -1421,7 +1442,7 @@ void staff_list(player * p, char *str)
   char *oldstack = stack;
   char temp[70];
   int i = 1, counter, charcounter, flag = 0, len, numres = 0, numstaff = 0;
-  int ratio_staff, ratio_res, gcf, maxi = 8;
+  int ratio_staff = 0, ratio_res = 0, gcf, maxi = 8;
   saved_player *scanlist, **hlist;
 
   sprintf(temp, "%s Staff", get_config_msg("talker_name"));
@@ -1432,7 +1453,7 @@ void staff_list(player * p, char *str)
 
   /* Only psu's and above can see psu's listed on "staff" */
 
-  if (!(p->residency & (PSU|SU|ADMIN)))
+  if (!(p->residency & (PSU | SU | ADMIN)))
     maxi = 7;
 
   for (i = 1; i < maxi; i++)
@@ -1481,7 +1502,6 @@ void staff_list(player * p, char *str)
 	{
 	  switch (scanlist->residency)
 	  {
-	    case STANDARD_ROOMS:
 	    case SYSTEM_ROOM:
 	    case BANISHED:
 	    case BANISHD:
@@ -1489,32 +1509,32 @@ void staff_list(player * p, char *str)
 	    default:
 	      numres++;
 /*
-	      if (((scanlist->residency & HCADMIN) && i == 1 &&
-		   !(scanlist->residency & CODER)) ||
-		  ((scanlist->residency & CODER) && i == 2) ||
-		  ((scanlist->residency & ADMIN) && i == 3 &&
-		   !(scanlist->residency & HCADMIN) &&
-		   !(scanlist->residency & CODER)) ||
-		  ((scanlist->residency & LOWER_ADMIN) && i == 4 &&
-		   !(scanlist->residency & ADMIN) &&
-		   !(scanlist->residency & CODER)) ||
-		  ((scanlist->residency & ASU) && i == 5 &&
-		   !(scanlist->residency & LOWER_ADMIN) &&
-		   !(scanlist->residency & CODER)) ||
-		  ((scanlist->residency & SU) && i == 6 &&
-		   !(scanlist->residency & ASU) &&
-		   !(scanlist->residency & CODER)) ||
-		  ((scanlist->residency & PSU) && i == 7 &&
-		   !(scanlist->residency & SU) &&
-		   !(scanlist->residency & CODER)))
-*/
-              if ((i == 1 && most_highest_priv (scanlist) == HCADMIN) ||
-                  (i == 2 && most_highest_priv (scanlist) == CODER) ||
-                  (i == 3 && most_highest_priv (scanlist) == ADMIN) ||
-                  (i == 4 && most_highest_priv (scanlist) == LOWER_ADMIN) ||
-                  (i == 5 && most_highest_priv (scanlist) == ASU) ||
-                  (i == 6 && most_highest_priv (scanlist) == SU) ||
-                  (i == 7 && most_highest_priv (scanlist) == PSU))
+   if (((scanlist->residency & HCADMIN) && i == 1 &&
+   !(scanlist->residency & CODER)) ||
+   ((scanlist->residency & CODER) && i == 2) ||
+   ((scanlist->residency & ADMIN) && i == 3 &&
+   !(scanlist->residency & HCADMIN) &&
+   !(scanlist->residency & CODER)) ||
+   ((scanlist->residency & LOWER_ADMIN) && i == 4 &&
+   !(scanlist->residency & ADMIN) &&
+   !(scanlist->residency & CODER)) ||
+   ((scanlist->residency & ASU) && i == 5 &&
+   !(scanlist->residency & LOWER_ADMIN) &&
+   !(scanlist->residency & CODER)) ||
+   ((scanlist->residency & SU) && i == 6 &&
+   !(scanlist->residency & ASU) &&
+   !(scanlist->residency & CODER)) ||
+   ((scanlist->residency & PSU) && i == 7 &&
+   !(scanlist->residency & SU) &&
+   !(scanlist->residency & CODER)))
+ */
+	      if ((i == 1 && most_highest_priv(scanlist) == HCADMIN) ||
+		  (i == 2 && most_highest_priv(scanlist) == CODER) ||
+		  (i == 3 && most_highest_priv(scanlist) == ADMIN) ||
+		  (i == 4 && most_highest_priv(scanlist) == LOWER_ADMIN) ||
+		  (i == 5 && most_highest_priv(scanlist) == ASU) ||
+		  (i == 6 && most_highest_priv(scanlist) == SU) ||
+		  (i == 7 && most_highest_priv(scanlist) == PSU))
 	      {
 		len += strlen(scanlist->lower_name) + 2;
 		if (len > 65)
@@ -1569,9 +1589,12 @@ void staff_list(player * p, char *str)
    }
    }
  */
-  gcf = greatest_common_factor(numres, numstaff);
-  ratio_staff = numstaff / gcf;
-  ratio_res = numres / gcf;
+  if (numstaff != 0)
+  {
+    gcf = greatest_common_factor(numres, numstaff);
+    ratio_staff = numstaff / gcf;
+    ratio_res = numres / gcf;
+  }
 
   sprintf(temp, "%d staff listed (staff to resident ratio is %d:%d)", numstaff, ratio_staff, ratio_res);
   pstack_mid(temp);

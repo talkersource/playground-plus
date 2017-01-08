@@ -513,7 +513,7 @@ void execute_command(player * p, struct command *com, char *str)
   {
     last_com = com;
     stack_check = stack;
-    sys_flags &= ~ROOM_TAG;
+    sys_flags &= ~(FAILED_COMMAND | PIPE | ROOM_TAG | FRIEND_TAG | OFRIEND_TAG | EVERYONE_TAG);
     command_type &= ~ROOM;
     fn = com->function;
     (*fn) (p, str);
@@ -597,7 +597,7 @@ void sub_command(player * p, char *str, struct command *comlist)
     rol++;
   *rol = 0;
   if (p->location == prison)
-    sprintf (oldstack, " They don't let you do that kinda thing down here.\n");
+    sprintf(oldstack, " They don't let you do that kinda thing down here.\n");
   else
 #ifndef COM_MATCH
     sprintf(oldstack, " Cannot find sub command '%s'\n", str);
@@ -671,7 +671,7 @@ void old_match_commands(player * p, char *str)
 	{
 	  if ((comlist->section & F_SWEARc) ||
 	      ((comlist->section & M_SWEARc) &&
-	       (!strcmp(p->location->owner->lower_name, "main") ||
+	       (!strcmp(p->location->owner->lower_name, SYS_ROOM_OWNER) ||
 		!strcmp(p->location->owner->lower_name, "intercom"))))
 	    execute_command(p, comlist, filter_rude_words(rol));
 	  else
@@ -699,7 +699,30 @@ void old_match_commands(player * p, char *str)
 	rol++;
       comlist->section &= ~TAGGEDc;
       comm_match = 0;
+#ifdef COMMAND_STATS
+      if (!(comlist->section & (SUPERc | ADMINc)))
+#ifdef ROBOTS
+	if (!(comlist->section & (SUPERc | ADMINc)) && !(p->residency & ROBOT_PRIV))
+#endif /* robots */
+	  commandUsed(comlist->text);
+#endif /* command_stats */
+  
+        if (config_flags & cfNOSPAM)
+          if (comlist->section & SPAMc)
+          {
+            if (last_com == comlist)
+              p->antispam += atoi(get_config_msg("spam_repeat"));
+            else
+              p->antispam += atoi(get_config_msg("spam_different"));
+          }
+
+        p->command_used = comlist;
+
+        if (!strncasecmp(rol, "/?", 2) || !strncasecmp(rol, "-h", 2))
+          help(p, p->command_used->text);
+        else
       execute_command(p, comlist, rol);
+
     }
     else
     {
@@ -785,7 +808,7 @@ void input_for_one(player * p)
     p->idle_msg[0] = 0;
     last_com = &input_to;
     stack_check = stack;
-    sys_flags &= ~ROOM_TAG;
+    sys_flags &= ~(FAILED_COMMAND | PIPE | ROOM_TAG | FRIEND_TAG | OFRIEND_TAG | EVERYONE_TAG);
     command_type &= ~ROOM;
     (*p->input_to_fn) (p, p->ibuffer);
     if (stack != stack_check)
@@ -808,6 +831,7 @@ void input_for_one(player * p)
       while (*pick && isspace(*pick))
 	pick++;
       if (*pick)
+      {
 	if (*pick == '/' || *pick == '.')
 	  if (current_room == prison && !(p->residency & (ADMIN | SU)))
 	    sub_command(p, pick + 1, restricted_list);
@@ -825,7 +849,14 @@ void input_for_one(player * p)
 	      match_commands(p, pick);
 	  }
 	else
+        {
+          if (config_flags & cfNOSWEAR &&
+             (!strcmp(p->location->owner->lower_name, SYS_ROOM_OWNER) ||
+              !strcmp(p->location->owner->lower_name, "intercom")))
+            pick = filter_rude_words(pick);
 	  say(p, pick);
+        }
+      }
     }
     else if (current_room == prison && !(p->residency & (ADMIN | SU)))
       sub_command(p, p->ibuffer, restricted_list);
@@ -902,7 +933,7 @@ void process_players()
 	  stack += sprintf(stack, "%s %s ",
 			   get_config_msg("logoff_prefix"), scan->name);
 	  stack += sprintf(stack, "%s ", get_config_msg("def_logout"));
-	  stack += sprintf(stack, "%s\n", get_config_msg("logoff_suffix"));
+	  stack += sprintf(stack, "^N%s\n", get_config_msg("logoff_suffix"));
 	}
 	else
 	{
@@ -910,13 +941,13 @@ void process_players()
 	  {
 	    stack += sprintf(stack, "%s %s%s ", get_config_msg("logoff_prefix"),
 			     scan->name, scan->logoffmsg);
-	    stack += sprintf(stack, "%s\n", get_config_msg("logoff_suffix"));
+	    stack += sprintf(stack, "^N%s\n", get_config_msg("logoff_suffix"));
 	  }
 	  else
 	  {
 	    stack += sprintf(stack, "%s %s %s ", get_config_msg("logoff_prefix"),
 			     scan->name, scan->logoffmsg);
-	    stack += sprintf(stack, "%s\n", get_config_msg("logoff_suffix"));
+	    stack += sprintf(stack, "^N%s\n", get_config_msg("logoff_suffix"));
 	  }
 	}
 
@@ -934,8 +965,7 @@ void process_players()
       if (sys_flags & VERBOSE || scan->residency == 0)
       {
 	/* Ignore "advanced" talker listings which spam the newconn log */
-	if ((strcasecmp(scan->inet_addr, "www.joetek.com") &&
-	     strcasecmp(scan->inet_addr, "realm.progsoc.uts.edu.au")))
+        if (!unlogged_site(scan->inet_addr) && !unlogged_site(scan->num_addr))
 	{
 	  if (scan->name[0])
 	  {
@@ -945,7 +975,7 @@ void process_players()
 		 get_address(scan, NULL));
 	  }
 	  else
-	    LOGF("nonconn", "%s  disconnects from login", scan->inet_addr);
+	    LOGF("nonconn", "%s disconnects from login", scan->inet_addr);
 	}
       }
       destroy_player(scan);
@@ -1114,7 +1144,7 @@ void actual_timer(int c)
 	scan->pennies = 100000;
       if (scan->residency && !(scan->residency & NO_SYNC) && scan->total_login % 1200 == 800)
 	save_player(scan);
-      if (scan->location && !strcmp(scan->location->owner->lower_name, "main"))
+      if (scan->location && !strcmp(scan->location->owner->lower_name, SYS_ROOM_OWNER))
 	scan->time_in_main++;
       if (scan->script && scan->script > 1)
 	scan->script--;
@@ -1142,9 +1172,9 @@ void actual_timer(int c)
 /* For max login time */
       timeon = time(0) - scan->on_since;
 #ifdef ROBOTS
-      if (scan->location && timeon > longest_time && timeon < ONE_DAY && !(scan->residency & ROBOT_PRIV))
+      if (scan->location && timeon > longest_time && !(scan->residency & ROBOT_PRIV))
 #else
-      if (scan->location && timeon > longest_time && timeon < ONE_DAY)
+      if (scan->location && timeon > longest_time)
 #endif
       {
 	longest_time = timeon;
@@ -1212,13 +1242,11 @@ void actual_timer(int c)
 	if (scan->idle == 3000 || scan->idle == 3300 ||
 	 (!(scan->residency) && (scan->idle == 1500 || scan->idle == 1620)))
 	{
-	  scan->total_idle_time += (1500 + (rand() % 500));
 	  TELLPLAYER(scan, " -=*> Warning - you are now %d minutes idle.\007\n",
 		     scan->idle / ONE_MINUTE);
 	}
 	if (scan->idle == 3540 || (!(scan->residency) && scan->idle == 1740))
 	{
-	  scan->total_idle_time += (1500 + (rand() % 500));
 	  TELLPLAYER(scan, " -=*> You're %d minutes idle. 1 minute till auto-disconnect.\007\n",
 		     scan->idle / ONE_MINUTE);
 	}
@@ -1230,7 +1258,6 @@ void actual_timer(int c)
 		     "Next time though, when you decide to leave, you ought to quit for yourself.\n\n"
 		     LINE
 		     "\n\n", scan->name);
-	  scan->total_idle_time += (3000 + (rand() % 1000));
 	  scan->idled_out_count++;
 	  log("idle", scan->lower_name);
 	  quit(scan, 0);
@@ -1502,7 +1529,7 @@ void timer_function()
       if (scan->timer_fn && !scan->timer_count)
       {
 	current_player = scan;
-	sys_flags &= ~ROOM_TAG;
+        sys_flags &= ~(FAILED_COMMAND | PIPE | ROOM_TAG | FRIEND_TAG | OFRIEND_TAG | EVERYONE_TAG);
 	command_type &= ~ROOM;
 	(*scan->timer_fn) (scan);
 	scan->timer_fn = 0;
@@ -1533,7 +1560,7 @@ void timer_function()
 	tell_player(scan, " After serving your sentence you are flung out"
 		    " to society again.\n");
 	command_type &= ~HIGHLIGHT;
-	move_to(scan, ENTRANCE_ROOM, 0);
+	move_to(scan, sys_room_id(ENTRANCE_ROOM), 0);
       }
     }
   }
@@ -1573,7 +1600,7 @@ void timer_function()
   {
     awaiting_reboot = 0;
     for (scan = flatlist_start; scan; scan = scan->flat_next)
-      if (scan->location && (scan->misc_flags & IN_EDITOR || scan->mode & (MAILEDIT | ROOMEDIT | NEWSEDIT)))
+      if (scan->location && (scan->flags & IN_EDITOR || scan->mode & (MAILEDIT | ROOMEDIT | NEWSEDIT)))
 	awaiting_reboot = 1;
     if (!awaiting_reboot)
       do_reboot();
@@ -1761,6 +1788,7 @@ void help(player * p, char *str)
   char *oldstack, header[75];
   struct command *fn, *comlist;
   char command[100] = "";
+  int i = 0;
 
   oldstack = stack;
 
@@ -1781,6 +1809,17 @@ void help(player * p, char *str)
   else
     comlist = coms[0];
 
+  /* check they aren't exploiting a pg96 bug to get su/admin help files */
+
+  for (i = 0; i < strlen(str); i++)
+  {
+    if (str[i] == ' ')
+    {
+      str[i] = 0;
+      break;
+    }
+  }
+
   strncpy(command, str, 95);
 
   /* Here it is - check person's privs before helping them =) */
@@ -1793,10 +1832,9 @@ void help(player * p, char *str)
   {
     if (get_help(p, str))
       return;
-    sprintf(stack, " Cannot find any help on '%s'. \n", command);
-    stack = end_string(stack);
-    pager(p, oldstack);
     stack = oldstack;
+    TELLPLAYER(p, " Cannot find any help on '%s'. \n", command);
+    LOGF("help", "%s requested help on '%s'", p->name, command);
     return;
   }
   if (!strcasecmp(str, "newbie"))

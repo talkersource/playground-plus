@@ -25,6 +25,10 @@ void mid_program_error(int dummy)
 
   if (current_player)
   {
+
+    if (current_player->flags & PASSWORD_MODE)
+      strcpy(current_player->ibuffer, "<password>");
+
     SUWALL(" -=*> %s just caused a program error, recovering...\n", current_player->name);
     if (*(current_player->ibuffer))
       LOGF("recover", "%s caused program error using: %s", current_player->name, current_player->ibuffer);

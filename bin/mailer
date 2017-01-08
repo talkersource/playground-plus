@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 #
-# Mailer program 1.7
+# Mailer program 1.8
 # (c) Richard Lawrence (aka Silver) 1996
 #
 # This simple script (in conjunction with the 'list_emails' command on the
@@ -13,7 +13,7 @@
 #
 
 echo " "
-echo "Mailer 1.7"
+echo "Mailer 1.8"
 echo "Copyright (c) Richard Lawrence (aka Silver) 1996"
 echo " "
 
@@ -25,14 +25,24 @@ if [ -z "$1" ]
 then
   echo "Allows you to mass mail your residents without your list being"
   echo "hijacked."
-  echo " "
+  echo 
   echo "eg.   ${0##*/} moved.msg \"PG+ has moved sites\""
-  echo " "
+  echo 
   echo "Would mail the text file 'moved.msg' to all your residents with"
   echo "the subject line \"PG+ has moved sites\"."
-  echo " "
+  echo 
   echo "Usage: ${0##*/} [filename] [subject]"
-  echo " "
+  echo 
+  exit
+fi
+
+if [ -n "$3" ]
+then
+  echo "It looks like you haven't surrounded your subject line in quotes. Try"
+  echo "doing something like this:"
+  echo
+  echo "${0##*/} $1 \"your subject line with spaces\""
+  echo
   exit
 fi
 
@@ -40,9 +50,8 @@ fi
 # Check the 'emails.rpt' exists - if it doesn't then warn them and exit
 #
 
-if [ -e "~/pgplus/reports/emails.rpt" ]
+if [ ! -f "$HOME/pgplus/reports/emails.rpt" ]
 then
-  echo
   echo "You need to log onto the talker and type 'list_emails' first before"
   echo "you can run this program."
   echo

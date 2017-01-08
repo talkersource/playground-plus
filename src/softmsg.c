@@ -9,7 +9,7 @@
  * or in the version command output
  *    -=> Soft Messages v1.2 (by phypor)
  *
- * This code is licensed for distribution in PG+ ONLY
+ * This code is licenced for distribution in PG+ ONLY
  * You may not distribute this code in any form other than
  * within the code release PG+, you may only distribute
  * it in a successor of PG+ with express consent in writing
@@ -230,5 +230,5 @@ char *get_rooms_msg(char *type)
 
 void softmsg_version(void)
 {
-  stack += sprintf(stack, " -=*> Soft Messages v1.2 (by phypor) enabled.\n");
+  stack += sprintf(stack, " -=*> Soft Messages v1.2 (by phypor) installed.\n");
 }

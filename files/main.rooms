@@ -27,8 +27,8 @@ There is a shout of "Oy! &m->n!" from within the crowd. Looks like you're
 wanted to play ...
 
 #
-main.boot
-main.potty
+boot
+potty
 end
 end
 #
@@ -43,7 +43,7 @@ of something rotting and the silence is occasionally punctuated by
 someone screaming.
 
 # 
-main.room
+room
 end
 You feel that the walls are closing in
 A scream shatters the silence
@@ -61,7 +61,7 @@ However if you do overstep the mark don't be suprised if someone deals
 with you.
 
 #
-main.room
+room
 end
 end
 #

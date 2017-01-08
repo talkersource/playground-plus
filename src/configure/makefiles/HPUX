@@ -1,0 +1,6 @@
+MF_DATE="20.06.1998"
+MF_OS="Hewlett Packard UNIX (HPUX)"
+MF_AUTHOR="Unknown"
+MF_OS_CFLAGS="-DHPUX"
+MF_LIBS=""
+

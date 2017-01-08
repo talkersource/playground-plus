@@ -1,0 +1,8 @@
+# a generic template for an OS not covered
+
+MF_DATE="<insert date>"
+MF_OS="<insert your OS>"
+MF_AUTHOR="<insert your name>"
+MF_OS_CFLAGS="<insert the defines required for that OS>"
+MF_LIBS="<insert the libs required for that OS>"
+

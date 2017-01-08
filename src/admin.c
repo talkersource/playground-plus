@@ -27,25 +27,25 @@ extern int auto_sd;
 #endif
 
 /* is this person a hard coded admin? */
-int  ishcadmin ( char * name )
+int ishcadmin(char *name)
 {
-   char       buf[512], *ptr, *sta;
+  char buf[512], *ptr, *sta;
 
-   strncpy (buf, get_config_msg ("hcadmins"), 511);
-   for (ptr = sta = buf; *ptr; ptr++)
-   {
-      if (*ptr == ' ')
-      {
-         *ptr++ = 0;
-         if (!strcasecmp (name, sta))
-            return 1;
-         sta = ptr;
-      }
-   }
-   if (!strcasecmp (name, sta)) /* check the last one here */
-      return 1;
+  strncpy(buf, get_config_msg("hcadmins"), 511);
+  for (ptr = sta = buf; *ptr; ptr++)
+  {
+    if (*ptr == ' ')
+    {
+      *ptr++ = 0;
+      if (!strcasecmp(name, sta))
+	return 1;
+      sta = ptr;
+    }
+  }
+  if (!strcasecmp(name, sta))	/* check the last one here */
+    return 1;
 
-   return 0;
+  return 0;
 }
 
 /* do they need to be on duty to do something? */
@@ -59,11 +59,25 @@ int check_duty(player * p)
   return 1;
 }
 
+void     kill_all_of_player(player * p)
+{
+   player          *scan = flatlist_start, *kept;
+
+   while (scan)
+   {
+      kept = scan->flat_next;
+      if (!strcasecmp (p->lower_name, scan->lower_name) && p != scan)
+         destroy_player(scan);
+      scan = kept;
+   }
+}
+
+
+
 /* reload everything */
 
 void reload(player * p, char *str)
 {
-
   tell_player(p, " Loading help\n");
   init_help();
   tell_player(p, " Loading messages\n");
@@ -94,7 +108,7 @@ void end_banish_edit(player * p)
 
 void banish_edit(player * p, char *str)
 {
-  start_edit(p, 10000, end_banish_edit, quit_banish_edit, banish_file.where);
+  start_edit(p, 10000, end_banish_edit, quit_banish_edit, banish_file.where, 0);
 }
 
 /* the eject command , muhahahahaa */
@@ -153,6 +167,7 @@ void sneeze(player * p, char *str)
 	  p->num_ejected++;
 	  quit(e, 0);
 	  TELLROOM(e->location, get_admin_msg("sneezed"), e->name);
+          TELLROOM(e->location, "\n"); 
 	  SUWALL(" -=*> %s sneezes on %s for %d mins.\n"
 		 " -=*> %s was from %s\n", p->name, e->name, nologin / 60,
 		 e->name, e->inet_addr);
@@ -242,7 +257,7 @@ void reset_sneeze(player * p, char *str)
   stack = end_string(stack);
   su_wall(oldstack);
   LOGF("sneeze", "%s reset the sneeze on %s to %d", p->name,
-       dummy.name, nologin - t);
+       dummy.name, (int) nologin - (int) t);
   stack = oldstack;
 }
 
@@ -295,13 +310,12 @@ void soft_splat(player * p, char *str)
 void splat_player(player * p, char *str)
 {
   time_t t;
-  char *oldstack, *space;
+  char *space;
   player *dummy;
   int no1, no2, no3, no4, tme = 0;
 
   tme = 0;
 
-  oldstack = stack;
   if (!(p->residency & (SU | ADMIN)))
   {
     soft_splat(p, str);
@@ -349,22 +363,18 @@ void splat_player(player * p, char *str)
   sscanf(dummy->num_addr, "%d.%d.%d.%d", &no1, &no2, &no3, &no4);
   splat1 = no1;
   splat2 = no2;
-  sprintf(stack, " -=*> %d.%d.*.* banned for %d minutes cause of %s\n",
-	  no1, no2, tme, dummy->name);
-  stack = end_string(stack);
-  su_wall(oldstack);
-  stack = oldstack;
+  SUWALL(" -=*> %d.%d.*.* banned for %d minutes cause of %s\n",
+	 no1, no2, tme, dummy->name);
 }
 
 void unsplat(player * p, char *str)
 {
-  char *oldstack, *spc;
+  char *spc;
   time_t t;
   int number = -1;
 
   CHECK_DUTY(p);
 
-  oldstack = stack;
   t = time(0);
   if (*str)
   {
@@ -382,11 +392,8 @@ void unsplat(player * p, char *str)
       tell_player(p, " No site banned atm.\n");
       return;
     }
-    sprintf(stack, " Site %d.%d.*.* is banned for %d more seconds.\n",
-	    splat1, splat2, number);
-    stack = end_string(stack);
-    tell_player(p, oldstack);
-    stack = oldstack;
+    SUWALL(" -=*> %s bans %d.%d.*.* for %d more seconds.\n", p->name,
+	   splat1, splat2, number);
     return;
   }
   if (splat1 == 0 && splat2 == 0)
@@ -396,12 +403,9 @@ void unsplat(player * p, char *str)
   }
   if (number == 0)
   {
-    sprintf(stack, " -=*> %s has unbanned site %d.%d.*.*\n",
-	    p->name, splat1, splat2);
+    SUWALL(" -=*> %s has unbanned site %d.%d.*.*\n",
+	   p->name, splat1, splat2);
     splat_timeout = (int) t;
-    stack = end_string(stack);
-    su_wall(oldstack);
-    stack = oldstack;
     return;
   }
   if (number > 600)
@@ -409,12 +413,9 @@ void unsplat(player * p, char *str)
     tell_player(p, " Thats too strict.. setting to 10 minutes.\n");
     number = 600;
   }
-  sprintf(stack, " -=*> %s changes the ban on site %d.%d.*.* to a further %d seconds.\n",
-	  p->name, splat1, splat2, number);
+  SUWALL(" -=*> %s changes the ban on site %d.%d.*.* to a further %d seconds.\n",
+	 p->name, splat1, splat2, number);
   splat_timeout = (int) t + number;
-  stack = end_string(stack);
-  su_wall(oldstack);
-  stack = oldstack;
 }
 
 
@@ -460,12 +461,9 @@ void soft_eject(player * p, char *str)
       stack = end_string(stack);
       TELLROOM(e->location, " %s\n", text);
       stack = text;
-      sprintf(stack, " -=*> %s gets rid of %s because %s.\n"
-	      " -=*> %s was from %s\n",
-	      p->name, e->name, reason, e->name, e->inet_addr);
-      stack = end_string(stack);
-      su_wall(text);
-      stack = text;
+      SUWALL(" -=*> %s gets rid of %s because %s.\n"
+	     " -=*> %s was from %s\n",
+	     p->name, e->name, reason, e->name, e->inet_addr);
       LOGF("drag", " %s dragged %s because: %s", p->name, e->name, reason);
     }
   }
@@ -492,15 +490,14 @@ int check_privs(int p1, int p2)
     return 0;
 }
 
-/* Blankpass, done _right_ */
+
+/* Blankpass, done _really_ _right_ ;) */
 
 void new_blankpass(player * p, char *str)
 {
-  char *oldstack;
-  char *pass;
+  char *pass = "";
   player *p2, dummy;
   saved_player *sp;
-  char bpassd[MAX_NAME] = "";
 
   CHECK_DUTY(p);
 
@@ -509,10 +506,7 @@ void new_blankpass(player * p, char *str)
     tell_player(p, " Format: blankpass <person> [new password]\n");
     return;
   }
-  oldstack = stack;
-  pass = 0;
-  pass = strchr(str, ' ');
-  if (pass)
+  if ((pass = strchr(str, ' ')))
   {
     *pass++ = 0;
     if (strlen(pass) > (MAX_PASSWORD - 2) || strlen(pass) < 3)
@@ -527,123 +521,82 @@ void new_blankpass(player * p, char *str)
   /* Hell, if their not on the program you SHOULD know */
 
   if (!p2)
-    tell_player(p, NOT_HERE_ATM);
-
-  if (p2)
+    TELLPLAYER(p, " '%s' isnt on the talker.\n", str);
+  else
   {
     if (!check_privs(p->residency, p2->residency))
     {
       tell_player(p, " You can't blankpass THAT person!\n");
-      sprintf(stack, " -=*> %s TRIED to blankpass %s!\n", p->name, p2->name);
-      stack = end_string(stack);
-      su_wall_but(p, oldstack);
-      stack = oldstack;
-      sprintf(stack, "%s failed to blankpass %s (Nuke the ass for trying *grin*)", p->name, p2->name);
-      stack = end_string(stack);
-      log("blanks", oldstack);
-      stack = oldstack;
+      SW_BUT(p, " -=*> %s TRIED to blankpass %s!\n", p->name, p2->name);
+      LOGF("blanks", "%s failed to blankpass %s (Nuke the ass for trying "
+	   "*grin*)", p->name, p2->name);
       return;
     }
     if (!pass)
     {
-      sprintf(stack, " -=*> %s has just blanked your password.\n", p->name);
-      stack = end_string(stack);
-      tell_player(p2, oldstack);
-      stack = oldstack;
       p2->password[0] = 0;
       tell_player(p, "Password blanked.\n");
-      sprintf(stack, "%s blanked %s's password (logged in)", p->name, p2->name);
-      stack = end_string(stack);
-      log("blanks", oldstack);
-      stack = oldstack;
+      TELLPLAYER(p2, " -=*> %s has just blanked your password.\n", p->name);
+      LOGF("blanks", "%s blanked %s's password (logged in)", p->name, p2->name);
+      return;
     }
-    else
-    {
-      sprintf(stack, " -=*> %s has just changed your password.\n",
-	      p->name);
-      stack = end_string(stack);
-      tell_player(p2, oldstack);
-      stack = oldstack;
-      strcpy(p2->password, do_crypt(pass, p2));
-      tell_player(p, " Password changed. They have NOT been informed of"
-		  " what it is.\n");
-      sprintf(stack, "%s changed %s's password (logged in)", p->name,
-	      p2->name);
-      stack = end_string(stack);
-      log("blanks", oldstack);
-      stack = oldstack;
-    }
+    strcpy(p2->password, do_crypt(pass, p2));
+    tell_player(p, " Password changed. They have NOT been informed of"
+		" what it is.\n");
+    TELLPLAYER(p2, " -=*> %s has just changed your password.\n", p->name);
+    LOGF("blanks", "%s changed %s's password (logged in)", p->name, p2->name);
+    SW_BUT(p, " -=*> %s changes %s's password ... and %s doesn't know whut it is.\n",
+	   p->name, p2->name, p2->name);
     set_update(*str);
     return;
   }
-  else
-    strcpy(bpassd, str);
 
-  lower_case(bpassd);
-
-  /* This is the setup for the saved priv check */
-
-  sp = find_saved_player(bpassd);
+  sp = find_saved_player(str);
   if (!sp)
   {
-    sprintf(stack, " Couldn't find saved player '%s'.\n", str);
-    stack = end_string(stack);
-    tell_player(p, oldstack);
-    stack = oldstack;
+    TELLPLAYER(p, " Couldn't find saved player '%s'.\n", str);
     return;
   }
-  /* This is what needed to be added (thanks to Mantis of Resort) */
-
   if (!check_privs(p->residency, sp->residency))
   {
-    tell_player(p, " You can't blankpass that save file !\n");
-    stack = oldstack;
+    tell_player(p, " You can't do that !!!\n");
+    LOGF("blanks", "%s TRIED to blankpass %s (logged out)", p->name, sp->lower_name);
+    SW_BUT(p, " -=*> %s TRIED to blankpass %s !!!\n", p->name, sp->lower_name);
+    quit(p, "");
     return;
   }
+  strcpy(dummy.lower_name, str);
+  dummy.fd = p->fd;
+  if (!(load_player(&dummy)))
   {
-    strcpy(dummy.lower_name, str);
-    dummy.fd = p->fd;
-    if (load_player(&dummy))
-    {
-      if (dummy.residency & BANISHD)
-      {
-	tell_player(p, " By the way, this player is currently BANISHD.");
-	if (dummy.residency == BANISHD)
-	{
-	  tell_player(p, " (Name Only)\n");
-	}
-	else
-	{
-	  tell_player(p, "\n");
-	}
-      }
-      if (pass)
-      {
-	strcpy(dummy.password, do_crypt(pass, &dummy));
-	tell_player(p, " Password changed in saved files.\n");
-	sprintf(stack, "%s changed %s's password (logged out)", p->name, dummy.name);
-	stack = end_string(stack);
-	log("blanks", oldstack);
-	stack = oldstack;
-      }
-      else
-      {
-	dummy.password[0] = 0;
-	tell_player(p, " Password blanked in saved files.\n");
-	sprintf(stack, "%s changed %s's password (logged out)", p->name, dummy.name);
-	stack = end_string(stack);
-	log("blanks", oldstack);
-	stack = oldstack;
-      }
-      dummy.script = 0;
-      dummy.script_file[0] = 0;
-      dummy.flags &= ~SCRIPTING;
-      dummy.location = (room *) - 1;
-      save_player(&dummy);
-    }
-    else
-      tell_player(p, " Can't find that player in saved files.\n");
+    tell_player(p, " Not found in files ...\n");
+    return;
   }
+  if (dummy.residency == BANISHD || dummy.residency & SYSTEM_ROOM)
+  {
+    tell_player(p, " Thats a banished NAME or system room.\n");
+    return;
+  }
+  if (dummy.residency & BANISHD)
+    tell_player(p, " By the way, this player is currently BANISHD.");
+  if (!pass)
+  {
+    tell_player(p,
+		" You can't Blank a password when someone is logged out.\n"
+    " Simply cause if they dont have a password, then they are not saved,\n"
+    " if they aren't saved, then the blanked password doesn't have effect.\n"
+	    " So youll have to actually set some new password for them.\n");
+    return;
+  }
+  strcpy(dummy.password, do_crypt(pass, &dummy));
+  tell_player(p, " Password changed in saved files.\n");
+  LOGF("blanks", "%s changed %s's password (logged out)", p->name, dummy.name);
+  SW_BUT(p, " -=*> %s changed %s's password (logged out)\n", p->name, dummy.name);
+  dummy.script = 0;
+  dummy.script_file[0] = 0;
+  dummy.flags &= ~SCRIPTING;
+  dummy.location = (room *) - 1;
+  save_player(&dummy);
 }
 
 void rm_shout_saved(player * p, char *str, int for_time)
@@ -751,170 +704,189 @@ void rm_sing_saved(player * p, char *str, int for_time)
   save_player(&dummy);
 }
 
+/* brand new remove_shout because the original was a bit crummy --Silver */
 
-/* remove shout from someone for a period */
-
-void remove_shout(player * p, char *str)
+void remove_shout (player *p, char *str)
 {
-  char *size = 0;
-  int new_size = 5;
+  char *size, mins[20] = "";
   player *p2;
+  int new_size = 5;
 
   if (!*str)
   {
-    tell_player(p, " Format: rm_shout <player> <how long> (-1 for eternal, 0 for restore)\n");
+    tell_player(p, " Format: rm_shout <player> [how long] (-1 for eternal, 0 for restore)\n");
     return;
   }
-
-  CHECK_DUTY(p);
-
+   
+  /* have they specified an optional time limit? If not, we'll go with
+     the default of 5 minutes */ 
+    
   size = strchr(str, ' ');
   if (size)
   {
     *size++ = 0;
-    new_size = atoi(size);
+    if (!strcmp(size, "-1"))
+      new_size = -1;
+    else
+      new_size = atoi(size);
   }
+  
+  /* are they on duty? */ 
+  
+  CHECK_DUTY(p);
+
+  /* is the victim logged on? */
+  
   p2 = find_player_global(str);
   if (!p2)
   {
     if (size)
       rm_shout_saved(p, str, new_size);
-    return;
-  }
-  if (!check_privs(p->residency, p2->residency))
-  {
-    tell_player(p, " You can't do that !!\n");
-    TELLPLAYER(p2, " -=*> %s tried to remove shout from you.\n", p->name);
-    return;
-  }
-  p2->system_flags &= ~SAVENOSHOUT;
-  if (new_size)
-  {
-    TELLPLAYER(p2, " %s\n", get_admin_msg("rm_shout"));
-    p->num_rmd++;
-  }
-  else
-    TELLPLAYER(p2, " %s\n", get_admin_msg("un_rm_shout"));
-  if (new_size > 30)
-    if (!(p->residency & ADMIN))
-      new_size = 5;
-  switch (new_size)
-  {
-    case -1:
-      SUWALL(" -=*> %s removes shouts from %s forever!\n",
-	     p->name, p2->name);
-      p2->system_flags |= SAVENOSHOUT;
-      p2->no_shout = -1;
-      break;
-    case 0:
-      SUWALL(" -=*> %s restores shouts to %s.\n", p->name, p2->name);
-      break;
-    case 1:
-      SUWALL(" -=*> %s just remove shouted %s for 1 minute.\n",
-	     p->name, p2->name);
-      break;
-    default:
-      SUWALL(" -=*> %s just remove shouted %s for %d minutes.\n",
-	     p->name, p2->name, new_size);
-      break;
-  }
-  new_size *= 60;
-  if (new_size >= 0)
-    p2->no_shout = new_size;
+     return;
+  }    
 
-  if (new_size != 0)
-    LOGF("rm_shout", "%s removed %s's shout for %d.", p->name, p2->name,
-	 new_size);
-  else
-    LOGF("rm_shout", "%s regranted shouts to %s.", p->name, p2->name);
-  if (new_size < 0)
-    /* log in the "forever" log */
-    LOGF("forever", "%s removes %s shout forever.", p->name, p2->name);
+  /* can they do that? */
 
-}
-
-/* cut-and-paste of rm_shout -- someone shoot me, I'm a spooner --traP */
-void remove_sing(player * p, char *str)
-{
-  char *size = 0;
-  int new_size = 5;
-  player *p2;
-
-  if (!*str)
-  {
-    tell_player(p, " Format: rm_sing <player> [how long]\n");
-    return;
-  }
-
-  CHECK_DUTY(p);
-
-  size = strchr(str, ' ');
-  if (size)
-  {
-    *size++ = 0;
-    new_size = atoi(size);
-  }
-  p2 = find_player_global(str);
-  if (!p2)
-  {
-    if (size)
-      rm_sing_saved(p, str, new_size);
-    return;
-  }
   if (!check_privs(p->residency, p2->residency))
   {
     tell_player(p, " You can't do that !!\n");
     TELLPLAYER(p2, " -=*> %s tried to remove sing from you.\n", p->name);
     return;
   }
-  p2->system_flags &= ~SAVE_NO_SING;
-  if (new_size)
+
+  /* Is this a silly value? */
+  
+  if (new_size > 30 && (!(p->residency & ADMIN)))
   {
-    TELLPLAYER(p2, " %s\n", get_admin_msg("rm_sing"));
-    p->num_rmd++;
+    TELLPLAYER(p, " %d minutes is a bit harse - lets try 5 minutes.\n", new_size);
+    new_size = 5;
   }
-  else
-    TELLPLAYER(p2, " %s\n", get_admin_msg("un_rm_sing"));
-  if (new_size > 30)
-    if (!(p->residency & ADMIN))
-      new_size = 5;
-  switch (new_size)
+  
+  switch(new_size)
   {
     case -1:
-      SUWALL(" -=*> %s just remove singed %s. (permanently!)\n",
-	     p->name, p2->name);
+      SW_BUT(p, " -=*> %s just removed %s's shouting permanently!\n", p->name, p2->name);
+      TELLPLAYER(p, " You perminantly remove the abilty for %s to shout.\n", p2->name);
+      TELLPLAYER(p2, " %s\n", get_admin_msg("rm_shout"));
+      LOGF("rm_shout", "%s gave %s a perminant remove shout", p->name, p2->name);
+      LOGF("forever", "%s gave %s a perminant remove shout", p->name, p2->name);
+      p->num_rmd++;
+      p2->system_flags |= SAVENOSHOUT;
+      p2->no_shout = -1;
+      break;
+    case 0:
+      SW_BUT(p, " -=*> %s allows %s to shout again\n", p->name, p2->name);
+      TELLPLAYER(p, " You allow %s to shout again.\n", p2->name);
+      TELLPLAYER(p2, " %s\n", get_admin_msg("un_rm_shout"));
+      LOGF("rm_shout", "%s regranted shouts to %s.", p->name, p2->name);
+      p2->no_shout = 0;
+      break;
+    default:
+      if (new_size == 1)
+        strcpy(mins, "1 minute");
+      else
+        sprintf(mins, "%d minutes", new_size);
+      SW_BUT(p, " -=*> %s just removed %s's shouting for %s!\n", p->name, p2->name, mins);
+      TELLPLAYER(p, " You prevent %s shouting for the next %s\n", p2->name, mins);
+      TELLPLAYER(p2, " %s\n", get_admin_msg("rm_shout"));
+      LOGF("rm_shout", "%s stops %s sshouting for %s", p->name, p2->name, mins);
+      p2->no_shout = new_size*60;
+      p2->system_flags &= ~SAVENOSHOUT;
+      break;
+  }
+}
+
+/* brand new remove_sing because the original was a bit crummy --Silver */
+
+void remove_sing (player *p, char *str)
+{
+  char *size, mins[20] = "";
+  player *p2;
+  int new_size = 5;
+
+  if (!*str)
+  {
+    tell_player(p, " Format: rm_sing <player> [how long] (-1 for eternal, 0 for restore)\n");
+    return;
+  }
+   
+  /* have they specified an optional time limit? If not, we'll go with
+     the default of 5 minutes */ 
+    
+  size = strchr(str, ' ');
+  if (size)
+  {
+    *size++ = 0;
+    if (!strcmp(size, "-1"))
+      new_size = -1;
+    else
+      new_size = atoi(size);
+  }
+  
+  /* are they on duty? */ 
+  
+  CHECK_DUTY(p);
+
+  /* is the victim logged on? */
+  
+  p2 = find_player_global(str);
+  if (!p2)
+  {
+    if (size)
+      rm_sing_saved(p, str, new_size);
+     return;
+  }    
+
+  /* can they do that? */
+
+  if (!check_privs(p->residency, p2->residency))
+  {
+    tell_player(p, " You can't do that !!\n");
+    TELLPLAYER(p2, " -=*> %s tried to remove sing from you.\n", p->name);
+    return;
+  }
+
+  /* Is this a silly value? */
+  
+  if (new_size > 30 && (!(p->residency & ADMIN)))
+  {
+    TELLPLAYER(p, " %d minutes is a bit harse - lets try 5 minutes.\n", new_size);
+    new_size = 5;
+  }
+  
+  switch(new_size)
+  {
+    case -1:
+      SW_BUT(p, " -=*> %s just removed %s's singing permanently!\n", p->name, p2->name);
+      TELLPLAYER(p, " You perminantly remove the abilty for %s to sing.\n", p2->name);
+      TELLPLAYER(p2, " %s\n", get_admin_msg("rm_sing"));
+      LOGF("rm_sing", "%s gave %s a perminant remove sing", p->name, p2->name);
+      LOGF("forever", "%s gave %s a perminant remove sing", p->name, p2->name);
+      p->num_rmd++;
       p2->system_flags |= SAVE_NO_SING;
       p2->no_sing = -1;
       break;
     case 0:
-      SUWALL(" -=*> %s just allowed %s to sing again.\n", p->name,
-	     p2->name);
-      break;
-    case 1:
-      SUWALL(" -=*> %s just remove singed %s for 1 minute.\n",
-	     p->name, p2->name);;
+      SW_BUT(p, " -=*> %s allows %s to sing again\n", p->name, p2->name);
+      TELLPLAYER(p, " You allow %s to sing again.\n", p2->name);
+      TELLPLAYER(p2, " %s\n", get_admin_msg("un_rm_sing"));
+      LOGF("rm_sing", "%s regranted sings to %s.", p->name, p2->name);
+      p2->no_sing = 0;
       break;
     default:
-      SUWALL(" -=*> %s just remove singed %s for %d minutes.\n",
-	     p->name, p2->name, new_size);
+      if (new_size == 1)
+        strcpy(mins, "1 minute");
+      else
+        sprintf(mins, "%d minutes", new_size);
+      SW_BUT(p, " -=*> %s just removed %s's singing for %s!\n", p->name, p2->name, mins);
+      TELLPLAYER(p, " You prevent %s singing for the next %s\n", p2->name, mins);
+      TELLPLAYER(p2, " %s\n", get_admin_msg("rm_sing"));
+      LOGF("rm_sing", "%s stops %s singing for %s", p->name, p2->name, mins);
+      p2->no_sing = new_size*60;
+      p2->system_flags &= ~SAVE_NO_SING;
       break;
   }
-  new_size *= 60;
-  if (new_size >= 0)
-    p2->no_sing = new_size;
-
-  if (new_size < 0)
-    LOGF("rm_sing", "%s removed %s's sing for %d.", p->name, p2->name,
-	 new_size);
-  else if (new_size == 0)
-    LOGF("rm_sing", "%s regranted sings to %s.", p->name, p2->name);
-  else
-  {
-    LOGF("rm_sing", "%s gave %s a permenant remove sing...", p->name, p2->name);
-    LOGF("forever", "%s gave %s a permenant remove sing...", p->name, p2->name);
-  }
 }
-
 
 /* remove trans movement from someone for a period */
 
@@ -1225,9 +1197,59 @@ void res_me(player * p, char *str)
     SUWALL(" -=*> %s needs some help with residency ... (tried to 'resme')\n",
 	   p->name);
     return;
-  }
+  } 
   resident(p, "\007");
 }
+
+void override(player * p, char *str)
+{
+  player *p2;
+  char *nt;
+  int newtime;
+
+
+  if (!(nt = strchr(str, ' ')))
+  {
+    tell_player(p, " Format: override <player> <seconds to res>\n");
+    return;
+  }
+  *nt++ = 0;
+  newtime = atoi(nt);
+
+  if (newtime > 600)
+  {
+    tell_player(p, " Anything over 10 mins is just wasting time ...\n");
+    return;
+  }
+  if (newtime < 1)
+    newtime = 1;
+
+  if (!(p2 = find_player_global(str)))
+    return;
+
+  if (!p2->awaiting_residency)
+  {
+    TELLPLAYER(p, " Honey, %s aint anywhere near the res process.\n",
+	       p2->name);
+    return;
+  }
+
+  SW_BUT(p, " -=*> %s overrides %s to %s ...\n", p->name, p2->name,
+	 word_time(newtime));
+  TELLPLAYER(p, " You override %s res time to %s\n", p2->name,
+	     word_time(newtime));
+  LOGF("override", "%s overrides %s time to %d secs, was %d secs.",
+       p->name, p2->name, newtime, p2->awaiting_residency);
+
+  if (newtime > p2->awaiting_residency)
+    TELLPLAYER(p2,
+    " -=*> Due to unforseen circumstances, your request for residency will\n"
+	   " -=*> be delayed for another %s.  Sorry for any inconvience.\n",
+	       word_time(newtime));
+
+  p2->awaiting_residency = newtime;
+}
+
 
 /* show premissions alterable */
 void show_possible_privs(player * p, char *whut)
@@ -1564,9 +1586,9 @@ void nuke_player(player * p, char *str)
     tell_player(p, " That person isn't a resident.\n");
     return;
   }
+
   if (p2)
   {
-
     /* Full credit for this little beauty goes to DeathBoy who found that
        he (as HCAdmin) could nuke another HCAdmin ... me! --Silver */
     if (p2->residency & HCADMIN)
@@ -1592,10 +1614,11 @@ void nuke_player(player * p, char *str)
     p2->residency = 0;
     strcpy(nuked, p2->name);
     strcpy(naddr, p2->inet_addr);
+    kill_all_of_player(p2);
     quit(p2, "");
     SUWALL(" -=*> %s nukes %s to a crisp, TOASTY!!\n"
-           " -=*> %s was from %s\n"
-           " -=*> Reason: %s\n", p->name, nuked, nuked, naddr, reason);
+	   " -=*> %s was from %s\n"
+	   " -=*> Reason: %s\n", p->name, nuked, nuked, naddr, reason);
     mesg_done = 1;
   }
   strcpy(nukee, str);
@@ -1617,6 +1640,12 @@ void nuke_player(player * p, char *str)
     SW_BUT(p, " -=*> %s just tried to nuke %s!?\n", p->name, sp->lower_name);
     return;
   }
+  if (sp->residency == BANISHD || sp->residency == BANISHED)
+  {
+    TELLPLAYER(p, " This is a banished name so you should should 'unbanish %s' like so ...\n", str);
+    unbanish(p, str);
+    return;
+  }
   strcpy(dummy.lower_name, sp->lower_name);
   dummy.fd = p->fd;
   load_player(&dummy);
@@ -1626,6 +1655,7 @@ void nuke_player(player * p, char *str)
     strcpy(nuked, dummy.name);
     strcpy(naddr, sp->last_host);
   }
+  kill_all_of_player(&dummy);
 
   /* Original code was commented out because it wibbled - now it doesn't
      (smug grin) -- Silver */
@@ -1674,9 +1704,9 @@ void nuke_player(player * p, char *str)
   if (!mesg_done)
   {
     SUWALL(" -=*> %s nukes \'%s\' to a crisp, TOASTY!!\n"
-           " -=*> Reason: %s\n", p->name, nuked, reason);
+	   " -=*> Reason: %s\n", p->name, nuked, reason);
   }
-  LOGF("nuke", "%s nuked %s [%s]. Reason: %s", p->name, nuked, naddr, reason);
+  LOGF("nuke", "%s nuked %s [%s]. Reason: %s", p->name, nukee, naddr, reason);
 }
 
 /* Actually DO the suicide ... */
@@ -1708,6 +1738,7 @@ void suicide3(player * p, char *str)
   sp = find_saved_player(nukee);
   strcpy(dummy.lower_name, sp->lower_name);
   dummy.fd = p->fd;
+  kill_all_of_player(p);
   quit(p, 0);
   load_player(&dummy);
   if (!*nuked)
@@ -1771,39 +1802,49 @@ void suicide(player * p, char *str)
 
 /* banish a player from the program */
 
-void banish_player(player * p, char *old_str)
+void banish_player(player * p, char *str)
 {
-  char *oldstack, str[20], *i, ban_name[MAX_NAME + 1] = "";
+  char *i, ban_name[MAX_NAME + 1] = "";
   player *p2;
   saved_player *sp;
   int newbie = 0;
 
   CHECK_DUTY(p);
 
-  oldstack = stack;
 
-  if (!*old_str)
+  if (!*str)
   {
     tell_player(p, " Format: banish <player>\n");
     return;
   }
 
-  strncpy(str, old_str, MAX_NAME - 3);
-  LOGF("banish", "%s is trying to banish %s.", p->name, str);
+  LOGF("banish", "%s is trying to banish %s ...", p->name, str);
   lower_case(str);
+
+  if (strlen(str) > MAX_NAME - 2)
+  {
+    tell_player(p, " Too long a string to banish damn you!\n");
+    log("banish", " ... but failed cause its tooo long");
+    return;
+  }
 
   p2 = find_player_absolute_quiet(str);
   if (!p2)
     tell_player(p, " No such person on the program.\n");
   if (p2)
   {
+    if (p == p2)
+    {
+      tell_player(p, " Egads no!\n");
+      SW_BUT(p, " -=*> %s needs to be took out n spanked ...\n", p->name);
+      log("banish", " ... but failed cause you cant banish yerself");
+      return;
+    }
     if (!check_privs(p->residency, p2->residency))
     {
       tell_player(p, " You can't banish them !\n");
-      sprintf(stack, " -=*> %s tried to banish you.\n", p->name);
-      stack = end_string(stack);
-      tell_player(p2, oldstack);
-      stack = oldstack;
+      TELLPLAYER(p2, " -=*> %s tried to banish you.\n", p->name);
+      LOGF("banish", " ... but failed cause %s has more privs", p2->name);
       return;
     }
     if (p2->residency == 0)
@@ -1813,7 +1854,6 @@ void banish_player(player * p, char *old_str)
     p2->residency = p2->saved_residency;
     quit(p2, 0);
     strcpy(ban_name, p2->name);
-    LOGF("banish", "%s sucessfully banishes '%s'.", p->name, p2->name);
   }
   if (!newbie)
   {
@@ -1823,19 +1863,23 @@ void banish_player(player * p, char *old_str)
       if (sp->residency & BANISHD)
       {
 	tell_player(p, " Already banished!\n");
-	stack = oldstack;
+	LOGF("banish", " ... but failed cause %s is already banished.\n",
+	     sp->lower_name);
 	return;
       }
       if (!check_privs(p->residency, sp->residency))
       {
 	tell_player(p, " You can't banish that save file !\n");
-	stack = oldstack;
+	LOGF("banish", " ... but failed cause %s has more privs",
+	     sp->lower_name);
 	return;
       }
       sp->residency |= BANISHD;
       set_update(*str);
       tell_player(p, " Player successfully banished.\n");
-      LOGF("banish", "%s sucessfully banishes '%s'.", p->name, sp->lower_name);
+      LOGF("banish", "%s sucessfully banishes player '%s'.",
+	   p->name, sp->lower_name);
+      SUWALL(" -=*> %s banished the player '%s'\n", p->name, sp->lower_name);
     }
     else
     {
@@ -1846,22 +1890,16 @@ void banish_player(player * p, char *old_str)
 	if (!isalpha(*i++))
 	{
 	  tell_player(p, " Banished names must only contain letters and must not be too large.\n");
+	  log("banish", " ... but failed cause its got non alphas");
 	  return;
 	}
       }
       create_banish_file(str);
       tell_player(p, " Name successfully banished.\n");
-      LOGF("banish", "%s sucessfully banishes '%s'.", p->name, str);
+      LOGF("banish", "%s sucessfully banishes name '%s'.", p->name, str);
+      SUWALL(" -=*> %s banished the name '%s'\n", p->name, str);
     }
   }
-  if (*str)
-  {
-    stack = oldstack;
-    sprintf(stack, " -=*> %s banishes the name '%s'.\n", p->name, str);
-    stack = end_string(stack);
-    su_wall(oldstack);
-  }
-  stack = oldstack;
 }
 
 
@@ -1870,7 +1908,6 @@ void banish_player(player * p, char *old_str)
 void unbanish(player * p, char *str)
 {
   saved_player *sp;
-  char *oldstack;
 
   CHECK_DUTY(p);
 
@@ -1880,7 +1917,6 @@ void unbanish(player * p, char *str)
     return;
   }
 
-  oldstack = stack;
   lower_case(str);
   sp = find_saved_player(str);
   if (!sp)
@@ -1896,20 +1932,14 @@ void unbanish(player * p, char *str)
   if (sp->residency == BANISHD || sp->residency == BANISHED)
   {
     remove_player_file(str);
-    sprintf(stack, " -=*> %s unbanishes the name '%s'\n", p->name, str);
-    stack = end_string(stack);
-    su_wall(oldstack);
-    stack = oldstack;
+    SUWALL(" -=*> %s unbanishes the name '%s'\n", p->name, str);
     return;
   }
   sp->residency &= ~BANISHD;
   set_update(*str);
   sync_to_file(str[0], 0);
-  sprintf(stack, " -=*> %s unbanishes the player '%s'\n", p->name, str);
-  stack = end_string(stack);
-  su_wall(oldstack);
-  log("banish", oldstack);
-  stack = oldstack;
+  SUWALL(" -=*> %s unbanishes the player '%s'\n", p->name, str);
+  LOGF("banish", "%s unbanished the player '%s'", p->name, str);
 }
 
 
@@ -2097,6 +2127,14 @@ void do_rename(player * p, char *str, int verbose)
   firspace++;
   letter = firspace;
 
+  /* Test for a nice inputted name */
+  if (strlen(letter) > MAX_NAME - 2 || strlen(letter) < 2)
+  {
+    tell_player(p, " Try picking a name of a decent length.\n");
+    stack = oldstack;
+    return;
+  }
+
   oldp = find_player_global(str);
   if (!oldp || !oldp->location)
     return;
@@ -2133,14 +2171,7 @@ void do_rename(player * p, char *str, int verbose)
     stack = oldstack;
     return;
   }
-  /* Test for a nice inputted name */
 
-  if (strlen(letter) > MAX_NAME - 2 || strlen(letter) < 2)
-  {
-    tell_player(p, " Try picking a name of a decent length.\n");
-    stack = oldstack;
-    return;
-  }
   while (*letter)
   {
     if (!isalpha(*letter))
@@ -2206,9 +2237,7 @@ void do_rename(player * p, char *str, int verbose)
   }
 
   /* log it */
-  sprintf(stack, "Rename by %s - %s to %s", p->name, name, oldp->name);
-  stack = end_string(stack);
-  log("rename", oldstack);
+  LOGF("rename", "Rename by %s - %s to %s", p->name, name, oldp->name);
   stack = oldstack;
   sprintf(stack, " -=*> %s renames %s to %s.\n", p->name, name,
 	  oldp->name);
@@ -2343,6 +2372,7 @@ void blank_email(player * p, char *str)
 		p->name, p2->name);
       stack = end_string(stack);
       log("blanks", oldstack);
+      stack = oldstack;
       return;
     }
   }
@@ -2578,10 +2608,10 @@ void yoyo(player * p, char *str)
   command_type |= ADMIN_BARGE;
   TELLROOM(p2->location, " %s is in need of a medic after an encounter with"
 	   " some %s!\n", p2->name, get_config_msg("staff_name"));
-  trans_to(p2, "main.boot");
+  trans_to(p2, sys_room_id("boot"));
   TELLROOM(p2->location, " %s staggers in reeling from a blow from some SU and then vanishes!\n",
 	   p2->name);
-  trans_to(p2, "main.room");
+  trans_to(p2, sys_room_id("room"));
   TELLROOM(p2->location, " %s falls back on earth bruised and battered *plop*\n", p2->name);
   command_type |= HIGHLIGHT;
   tell_player(p2, "  You musta been bad cause some SU just used you as a punching bag!\n");
@@ -3145,7 +3175,7 @@ void net_propose(player * p, char *str)
     tell_player(p, " Sorry, you cannot be engaged to a non-resident.\n");
     return;
   }
-  if (q->flags & NO_PROPOSE)
+  if (q->tag_flags & NO_PROPOSE)
   {
     tell_player(p, " That person is blocking proposals...\n");
     return;
@@ -3323,24 +3353,24 @@ void cancel_engage(player * p, char *str)
     z->system_flags &= ~(MARRIED | ENGAGED);
     z->flags &= ~WAITING_ENGAGE;
     save_player(z);
+
+    /* Tell everyone else! */
+
+    if (config_flags & cfWALLREJECT)
+      for (scan = flatlist_start; scan; scan = scan->flat_next)
+	if (scan != p && (!z || scan != z))
+	  TELLPLAYER(scan, "\n -=*> %s cancels the engagement to %s!\n",
+		     p->name, z->name);
+
   }
   else				/* in case for some odd reason, we get here ... */
-    TELLPLAYER(p, " Odd, you don't seem to be be engaged to anyone!\n");
+    TELLPLAYER(p, " Your ex-spouse-to-be isnt online atm ... canceling anyways.\n");
 
   p->system_flags &= ~(MARRIED | ENGAGED);
   p->flags &= ~WAITING_ENGAGE;
 
   strncpy(p->married_to, "", MAX_NAME - 3);
   save_player(p);
-
-  /* Tell everyone else! */
-
-  if (config_flags & cfWALLREJECT)
-    for (scan = flatlist_start; scan; scan = scan->flat_next)
-      if (scan != p && scan != z)
-	TELLPLAYER(scan, "\n -=*> %s cancels the engagement to %s!\n",
-		   p->name, z->name);
-
 
 }
 
@@ -3770,7 +3800,7 @@ void script(player * p, char *str)
     return;
   }
   t = time(0);
-  strftime(stack, 16, "%y%m%d%H%M%S", localtime(&t));
+  strftime(stack, 18, "%Y%m%d%H%M%S", localtime(&t));
   stack = end_string(stack);
   sprintf(p->script_file, "%s%s.script", p->name, oldstack);
   stack = oldstack;
@@ -3782,4 +3812,133 @@ void script(player * p, char *str)
 
   SUWALL(" -=*> %s has started continuous scripting with reason '%s'\n",
 	 p->name, str);
+}
+
+
+/* screening */
+
+void screen_newbies(player * p, char *str)
+{
+  if (p->flags & BLOCK_SU)
+  {
+    tell_player(p, " Get yer arse back on duty and try it.\n");
+    return;
+  }
+  if (*str)
+  {
+    if (!strcasecmp("off", str) &&
+	sys_flags & SCREENING_NEWBIES)
+    {
+      sys_flags &= ~SCREENING_NEWBIES;
+      LOGF("newbies", "Newbie screening turned off by %s", p->name);
+      SUWALL("\n -=*> %s lets in newbies without screening\n\n",
+	     p->name);
+      return;
+    }
+    else if (!strcasecmp("on", str) &&
+	     !(sys_flags & SCREENING_NEWBIES))
+    {
+      sys_flags |= SCREENING_NEWBIES;
+      sys_flags &= ~CLOSED_TO_NEWBIES;
+      LOGF("newbies", "Newbie screening turned on by %s", p->name);
+      SUWALL("\n -=*> %s sifts the newbies through a screen\n\n",
+	     p->name);
+      return;
+    }
+  }
+  if (sys_flags & SCREENING_NEWBIES)
+    TELLPLAYER(p, " %s currently screening newbies.\n", talker_name);
+  else
+    TELLPLAYER(p, " %s currently not screening newbies.\n", talker_name);
+}
+
+
+void show_screen_queue(player * p)
+{
+  player *scan;
+  char *oldstack = stack;
+  int hit = 0;
+
+  pstack_mid("Current screening queue");
+
+  stack += sprintf(stack, "\n");
+  for (scan = flatlist_start; scan; scan = scan->flat_next)
+    if (scan->input_to_fn == newbie_dummy_fn)
+    {
+      stack += sprintf(stack, "%-20s    %d seconds left\n", scan->name,
+		       scan->timer_count);
+      hit++;
+    }
+  stack = end_string(stack);
+
+  if (!hit)
+    tell_player(p, " The screening queue is currently empty ...\n");
+  else
+    TELLPLAYER(p, "%s\n" LINE, oldstack);
+  stack = oldstack;
+}
+
+void newbie_allow(player * p, char *str)
+{
+  player *p2;
+  player *cp = current_player;
+
+  if (!*str)
+  {
+    show_screen_queue(p);
+    return;
+  }
+  if (p->flags & BLOCK_SU)
+  {
+    tell_player(p, " Get yer ass on duty, then allow someone in.\n");
+    return;
+  }
+  p2 = find_screend_player(str);
+  if (!p2)
+  {
+    TELLPLAYER(p, " '%s' not found in the screening queue...\n", str);
+    show_screen_queue(p);
+    return;
+  }
+  SUWALL(" -=*> %s allows the entry of %s\n", p->name, p2->name);
+  LOGF("screen", "%s allows %s [%s]", p->name, p2->name, p2->inet_addr);
+
+  current_player = p2;
+  tell_player(p2, newpage1_msg.where);
+  do_prompt(p2, "Hit return to continue:");
+  p2->input_to_fn = newbie_start;
+  p2->timer_fn = login_timeout;
+  p2->timer_count = 1800;
+  current_player = cp;
+}
+
+void newbie_deny(player * p, char *str)
+{
+  player *p2;
+  player *cp = current_player;
+
+  if (!*str)
+  {
+    show_screen_queue(p);
+    return;
+  }
+  if (p->flags & BLOCK_SU)
+  {
+    tell_player(p, " Get yer ass on duty, then deny em.\n");
+    return;
+  }
+  p2 = find_screend_player(str);
+  if (!p2)
+  {
+    TELLPLAYER(p, " '%s' not found in the screening queue...\n", str);
+    show_screen_queue(p);
+    return;
+  }
+  SUWALL(" -=*> %s denies access to %s\n", p->name, p2->name);
+  LOGF("screen", "%s denies %s [%s]", p->name, p2->name, p2->inet_addr);
+
+  current_player = p2;
+  newbie_was_screend(p2);
+  current_player = cp;
+
 }

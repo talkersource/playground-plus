@@ -21,6 +21,7 @@ flag_list       permission_list[] = {
    {"coder",		CODER},/* grant admin/lower_admin/asu/etc, then coder */
    {"condom",		PROTECT},
    {"creator",		SPECIALK},
+   {"debug",		DEBUG},
    {"echo",		ECHO_PRIV},
    {"hcadmin",		HCADMIN|ADMIN|LOWER_ADMIN|ASU|SU|PSU|WARN|DUMB},
    {"house",		HOUSE},
@@ -65,6 +66,7 @@ flag_list       perm_required[] =
       /* misc privs */
    {"creator",		ASU},
    {"builder",		ASU},
+   {"debug",		HCADMIN},
    {"spod",		ASU},
    {"condom",		HCADMIN},
    {"house",		LOWER_ADMIN},

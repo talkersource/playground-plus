@@ -10,11 +10,9 @@
  */
 #define NEW_PROCESS_OUTPUT 1
 #define INTERCOM 1
-#define ANTICRASH 1
-#define MAX_CRASH (10)
+#undef  ANTICRASH
 #define AUTOSHUTDOWN 1
-#define ROBOTS 1
-#define INTELLIBOTS 1
+#undef  ROBOTS
 #define LAST 1
 #define LAST_SHOW (20)
 #define COMMAND_STATS 1

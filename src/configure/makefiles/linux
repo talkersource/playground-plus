@@ -1,0 +1,6 @@
+MF_DATE="20.06.1998"
+MF_OS="Redhat, Slackware, Debian Linux and variants"
+MF_AUTHOR="Richard Lawrence (Silver)"
+MF_OS_CFLAGS="-DLINUX"
+MF_LIBS=""
+

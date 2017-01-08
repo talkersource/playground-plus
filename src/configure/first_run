@@ -1,0 +1,76 @@
+##########################################################################
+#
+# Playground Plus configuration script
+# copyright (c) Richard Lawrence 1999
+#
+# This script is distributed for and ONLY for the Playground Plus package. 
+# It may not be used in any other distribution without the prior permission
+# of the author. No reply to your request does NOT constitute permission.
+#
+##########################################################################
+
+# first_run
+# info and licence
+# by Richard 'Silver' Lawrence
+
+PG_VERSION=`egrep "\#define PG_VERSION" include/config.h | cut -d"\"" -f2`
+
+clear
+
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ WELCOME
+
+ Welcome to Playground Plus v$PG_VERSION, a fully functional working
+ ew-too basecode for you to set up and run your own talker.
+
+ For the next few minutes allow the configuration scripts to set up
+ the code ready for it to be used on your system. This configuration
+ system isn't perfect (it doesn't use autoconf) but will work for a
+ number of systems.
+
+*END*
+
+echo -n " Press RETURN or ENTER to continue ... "
+read response
+
+clear
+cat > .tmp-licence <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ LICENCE
+
+ Please read carefully the licence agreement. Usage of this code is
+ subject to your agreement of it.
+
+*END*
+
+cat .tmp-licence ../help_files/licences/PGPLUS.licence > .tmp-licence2
+rm -f .tmp-licence
+more .tmp-licence2
+rm -f .tmp-licence2
+
+echo
+echo -n "  Type 'agree' to accept the licence, anything else to quit: "
+read response
+if [ "$response" != "agree" ]
+then
+  echo -e "\n  Aborting installer. Please delete the entire 'pgplus' directory.\n"
+  exit
+fi
+
+#
+# remove the autoconfig.h file just in case I forgot to do it and touch
+# for a .Makefile_objects dir
+# (this will force the code configuration options to appear but won't
+# delete any previous answers)
+#
+rm -f include/autoconfig.h
+touch .Makefile_objects
+
+bash configure/setup

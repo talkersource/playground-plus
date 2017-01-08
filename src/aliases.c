@@ -43,7 +43,7 @@ void delete_entry_alias(saved_player * sp, alias * l)
     }
     else
       scan = scan->next;
-  log("error", "Tried to delete alias that wasn't there.\n");
+  log("error", "Tried to delete alias that wasn't there.");
 }
 
 
@@ -64,7 +64,7 @@ void tmp_comp_alias(saved_player * sp)
     next = l->next;
     if (!l->cmd[0])
     {
-      log("error", "Bad list entry on compress .. auto deleted.\n");
+      log("error", "Bad alias entry on compress .. auto deleted.");
       delete_entry_alias(sp, l);
     }
     else
@@ -237,7 +237,9 @@ alias *create_entry_alias(player * p, char *name)
   }
   l = (alias *) MALLOC(sizeof(alias));
   strncpy(l->cmd, name, MAX_NAME - 3);
+  l->cmd[MAX_NAME - 3] = 0;
   strncpy(l->sub, "", MAX_DESC - 3);
+  l->sub[MAX_DESC - 3] = 0;
 
   l->next = p->saved->alias_top;
   p->saved->alias_top = l;
@@ -364,6 +366,30 @@ void undefine_alias(player * p, char *str)
   stack = oldstack;
 }
 
+/* check for people aliasing _logon / _logoff / _recon to something which uses the
+ *  quit command -- blimey
+ */
+int alias_contains_quit_command(char * str)
+{
+    char * current;
+
+    for (current = str; current; current = strstr(current, "%;")) {
+        /* skip to the start of a commandline */
+        if ((current[0] == '%') && (current[1] == ';'))
+            current += 2;
+        while (current[0] == ' ')
+            current++;
+        /* see if the commandline is prefixed by "quit",
+           and has the suffix of a command delimiter */
+        if ((strlen(current) >= 4) &&
+            (strncasecmp(current, "quit", 4) == 0) &&
+            ((current[4] == '\0') || (current[4] == ' ') ||
+             (current[4] == '\n') || ((current[4] == '%') && (current[5] == ';'))))
+            return 1;
+    }
+    return 0;
+}
+
 /* define an alias -- woowoo */
 
 void define_alias(player * p, char *str)
@@ -392,6 +418,14 @@ void define_alias(player * p, char *str)
   *str++ = 0;
   str = scanned;
 
+  /* check for stupid people */
+  if ((!strcasecmp(str, "_logon") || !strcasecmp(str, "_logoff") || !strcasecmp(str, "_recon")) &&
+      alias_contains_quit_command(doh))
+  {
+      tell_player(p, " You can't use the 'quit' command in such an alias.\n");
+      return;
+  }
+
   l = find_alias_entry(p, str);
   if (!l)
     l = create_entry_alias(p, str);
@@ -399,6 +433,7 @@ void define_alias(player * p, char *str)
   {
     count++;
     strncpy(l->sub, doh, MAX_DESC - 3);
+    l->sub[MAX_DESC - 3] = 0;
   }
   if (count)
     tell_player(p, " Alias defined.\n");
@@ -485,7 +520,7 @@ char *splice_argument(player * p, char *str, char *arg, int conti)
      no longer have break-to-stop loop, will end when way past
      length for writing out, but before buffer can be written past
    */
-  while (b < 5000)
+  while (b < 1000)
   {
 
     if (!strhold[s])
@@ -567,7 +602,8 @@ char *splice_argument(player * p, char *str, char *arg, int conti)
 	r1 = 0;
 	r2 = 0;
 	s += 2;
-	while (strhold[s] != '}')
+/*	while (strhold[s] != '}') */
+	while (strhold[s] && strhold[s] != '}')
 	{
 	  if (r1 < 10 && r2 < 99)
 	  {
@@ -790,15 +826,16 @@ void library_list(player * p, char *str)
   {
     if (!(library[i].privs) || p->residency & PSU)
     {
-      sprintf(stack, "%-20s", library[i].command);
+      sprintf(stack, "%-18s", library[i].command);
       stack = strchr(stack, 0);
     }
     i++;
     if (i % 4 == 0)
       stack += sprintf(stack, "\n");
   }
-  stack -= 2;
-  *stack++ = '\n';
+
+  if (i % 4 != 0)
+    stack += sprintf(stack, "\n");
 
   sprintf(temp, "Please send any alias submissions to %s",
 	  get_config_msg("talker_email"));
@@ -895,12 +932,59 @@ void library_examine(player * p, char *str)
 
 void blank_all_aliases(player * p, char *str)
 {
+  player *p2 = 0, d;
 
-  if (!p->saved)
+  if (*str && p->residency & ADMIN)
   {
-    tell_player(p, "You can't -- you have no alias list anyway");
+    if (!(p2 = find_player_absolute_quiet(str)))
+    {
+      strncpy(d.lower_name, str, MAX_NAME - 1);
+      /* we dont really have to load_player here, as the aliases
+         are part of the saved_player, but i find it easier to 
+         demonstrate we are working on either a player thats logged
+         in or out like this
+         ~phy
+       */
+      if (!load_player(&d))
+      {
+	tell_player(p, " Noone to blank aliases ...\n");
+	return;
+      }
+      p2 = &d;
+    }
+  }
+  else
+    p2 = p;
+  if (!p2->saved)
+  {
+    if (p == p2)
+      tell_player(p, " You don't seem to have a place for an alias list.\n");
+    else
+      TELLPLAYER(p, " '%s' doesn't have a saved_player ...\n", p2->name);
     return;
   }
-  p->saved->alias_top = 0;
-  tell_player(p, "Aliases deleted.\n");
+  if (p != p2 && !check_privs(p->residency, p2->residency))
+  {
+    tell_player(p, " You can't do that!!!\n");
+    if (p2 != &d)
+      TELLPLAYER(p2, " -=*> %s tried to blank all your aliases!\n", p->name);
+    else
+      SW_BUT(p, " -=*> %s tried to blank all of %s's aliases!\n", p->name, p2->name);
+    return;
+  }
+  if (p != p2 && !p2->saved->alias_top)
+  {
+    TELLPLAYER(p, " '%s' has no aliases defined presently.\n", p2->name);
+    return;
+  }
+  p2->saved->alias_top = 0;
+
+  if (p == p2)
+  {
+    tell_player(p, "Aliases deleted.\n");
+    return;
+  }
+  TELLPLAYER(p, " '%s' aliases have been deleted ...\n", p2->name);
+  SW_BUT(p, " -=*> %s deletes all of %s's aliases ...\n", p->name, p2->name);
+  LOGF("blanks", "%s blanks ALL of %s's aliases.", p->name, p2->name);
 }

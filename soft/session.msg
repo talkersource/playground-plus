@@ -4,7 +4,7 @@
 #
 
 # This is the default session, that is the session that is set on boot
-default_session:	Set Me Please
+default_session:	I beg of you... set me.
 
 # This is the default setter of the default session
 default_setter:		No-one

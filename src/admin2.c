@@ -30,7 +30,7 @@ extern int auto_sd;
 extern char shutdown_reason[];
 
 /* New vlog lib by phypor ... not only is it dynamic with scandir,
-   but it allows for diffrent logs to be accessable by diffrent privs
+   but it allows for diffrent logs to be accessible by diffrent privs
  */
 
 char snl[160];
@@ -66,11 +66,7 @@ char *str_priv_log(int mode)
   return "ad";
 }
 
-#ifdef REDHAT5
-int valid_log(struct dirent *d)
-#else /* REDHAT5 */
-int valid_log(const struct dirent *d)
-#endif				/* !REDHAT5 */
+int valid_log(DIRENT_PROTO struct dirent *d)
 {
   char *dotter;
 
@@ -95,10 +91,10 @@ void vlog(player * p, char *str)
     {
       tell_player(p, " There are currently no log files ...\n");
       if (de)
-	FREE(de);
+	free(de);
       return;
     }
-    pstack_mid("Accessable Logs");	/* might as well make it pretty */
+    pstack_mid("Accessible Logs");	/* might as well make it pretty */
     stack += sprintf(stack, "\n");
     for (i = 0; i < dc; i++)
     {
@@ -248,7 +244,7 @@ void show_logs(player * p, char *str)
     if (!compact)
       tell_player(p, " Log directory is empty ...\n");
     if (de)
-      FREE(de);
+      free(de);
     return;
   }
   if (compact)
@@ -298,7 +294,7 @@ void show_logs(player * p, char *str)
   {
     stack = oldsmack;
     if (!compact)
-      tell_player(p, " No logs accessable ...\n");
+      tell_player(p, " No logs accessible ...\n");
     return;
   }
   if (compact)
@@ -685,56 +681,30 @@ void same_site(player * p, char *str)
 
 void close_to_newbies(player * p, char *str)
 {
-  int wall = 0;
-
-  if (p->flags & BLOCK_SU)
+  CHECK_DUTY(p);
+  if (*str)
   {
-    tell_player(p, " You cant do THAT when off_duty.\n");
-    return;
+    if ((!strcasecmp("off", str) || !strcasecmp("close", str)) &&
+	!(sys_flags & CLOSED_TO_NEWBIES))
+    {
+      sys_flags |= CLOSED_TO_NEWBIES;
+      LOGF("newbies", "Newbies turned off by %s", p->name);
+      SUWALL("\n -=*> %s closes the program to newbies.\n\n", p->name);
+      return;
+    }
+    else if ((!strcasecmp("on", str) || !strcasecmp("open", str)) &&
+	     sys_flags & CLOSED_TO_NEWBIES)
+    {
+      sys_flags &= ~CLOSED_TO_NEWBIES;
+      LOGF("newbies", "Newbies allowed by %s", p->name);
+      SUWALL("\n -=*> %s opens the program to newbies.\n\n", p->name);
+      return;
+    }
   }
-
-  if (!*str)
-    tell_player(p, " Format: newbies [on|off]\n");
-
-  if ((!strcasecmp("on", str) || !strcasecmp("open", str))
-      && sys_flags & CLOSED_TO_NEWBIES)
-  {
-    sys_flags &= ~CLOSED_TO_NEWBIES;
-
-    /*log the open */
-    LOGF("newbies", "Program opened to newbies by %s", p->name);
-    wall = 1;
-  }
-  else if ((!strcasecmp("off", str) || !strcasecmp("close", str))
-	   && !(sys_flags & CLOSED_TO_NEWBIES))
-  {
-    sys_flags |= CLOSED_TO_NEWBIES;
-
-    /*log the close */
-    LOGF("newbies", "Program closed to newbies by %s", p->name);
-    wall = 1;
-  }
-  else
-    wall = 0;
-
   if (sys_flags & CLOSED_TO_NEWBIES)
-  {
-    if (!wall)
-      TELLPLAYER(p, " %s is closed to all newbies.\n",
-		 get_config_msg("talker_name"));
-    else
-      SUWALL("\n -=*> %s closes %s to newbies.\n\n", p->name,
-	     get_config_msg("talker_name"));
-  }
+    TELLPLAYER(p, " %s currently closed to newbies.\n", talker_name);
   else
-  {
-    if (!wall)
-      TELLPLAYER(p, " %s is open to all newbies.\n",
-		 get_config_msg("talker_name"));
-    else
-      SUWALL("\n -=*> %s opens %s to newbies.\n\n", p->name,
-	     get_config_msg("talker_name"));
-  }
+    TELLPLAYER(p, " %s currently open to newbies.\n", talker_name);
 }
 
 /* toggle whether the program is globally closed to ressies */
@@ -831,70 +801,78 @@ void check_info(player * p, char *str)
       tell_player(p, " No such person in saved files.\n");
       return;
     }
+    p2 = &dummy;
   }
 
-  switch (dummy.residency)
+  switch (p2->residency)
   {
     case SYSTEM_ROOM:
       tell_player(p, " Standard rooms file\n");
       return;
     default:
-      if (dummy.residency & BANISHD)
+      if (p2->residency & BANISHD)
       {
-	if (dummy.residency == BANISHD)
+	if (p2->residency == BANISHD)
 	  tell_player(p, "BANISHED (Name only).\n");
 	else
 	  tell_player(p, "BANISHED.\n");
       }
-      sprintf(stack, "            <   Res   >ch misc  upper <SU+> \n"
-	      "            Bx+TbsMLBSsFR CWtH  D STK LHpSAg\n"
-	      "Residency   %s\n", bit_string(dummy.residency));
+
+      sprintf(stack, "            " RES_BIT_HEAD "\n"
+	      "Residency   %s\n", privs_bit_string(p2->residency));
       break;
   }
   stack = strchr(stack, 0);
 
-  sprintf(stack, "%s %s %s\n", dummy.pretitle, dummy.name, dummy.title);
+  sprintf(stack, "%s %s %s^N\n", p2->pretitle, p2->name, p2->title);
   stack = strchr(stack, 0);
-  sprintf(stack, "EMAIL: %s\n", dummy.email);
+  sprintf(stack, "EMAIL: %s\n", p2->email);
   stack = strchr(stack, 0);
-  sprintf(stack, "SPOD_CLASS: %s\n", dummy.spod_class);
+  sprintf(stack, "SPOD_CLASS: %s^N\n", p2->spod_class);
   stack = strchr(stack, 0);
-  if (dummy.term)
+  if (p2->term)
   {
-    sprintf(stack, "Hitells turned on.\n");
+    stack += sprintf(stack, "Hitells turned set to %s",
+		     terms[(p2->term) - 1].name);
+    if (p2->misc_flags & NOCOLOR)
+      stack += sprintf(stack, "  (Inline ON)");
+    if (p2->misc_flags & SYSTEM_COLOR)
+      stack += sprintf(stack, "  (Syscolor ON)");
+    strcpy(stack, "\n");
     stack = strchr(stack, 0);
   }
-  if ((dummy.password[0]) <= 0)
+  if ((p2->password[0]) <= 0)
   {
     strcpy(stack, "NO PASSWORD SET\n");
     stack = strchr(stack, 0);
   }
   sprintf(stack, "            !D$LdJmM--fnemMmLAIiDsb---------\n"
-	  "SystemFlags %s\n", bit_string(dummy.system_flags));
+	  "SystemFlags %s\n", bit_string(p2->system_flags));
   stack = strchr(stack, 0);
   sprintf(stack, "            >-!]+e#^^--!>*+dm$c=B#?pILB------\n"
-	  "TagFlags    %s\n", bit_string(dummy.tag_flags));
+	  "TagFlags    %s\n", bit_string(p2->tag_flags));
   stack = strchr(stack, 0);
   sprintf(stack, "            hESes-----gmnpeSPrfxCq----------\n"
-	  "CustomFlags %s\n", bit_string(dummy.custom_flags));
+	  "CustomFlags %s\n", bit_string(p2->custom_flags));
   stack = strchr(stack, 0);
   sprintf(stack, "            PG--------csCSg-----------------\n"
-	  "MiscFlags   %s\n", bit_string(dummy.misc_flags));
+	  "MiscFlags   %s\n", bit_string(p2->misc_flags));
   stack = strchr(stack, 0);
-  sprintf(stack, "            PRNREPCPTLCEISDRUbSWAFSlC-------\n"
-	  "flags       %s\n", bit_string(dummy.flags));
+  sprintf(stack, "            -RNREP-PTLCEiSDRUbsWAFSo--wre---\n"
+	  "Playerflags %s\n", bit_string(p2->flags));
   stack = strchr(stack, 0);
-  sprintf(stack, "Max: rooms %d, exits %d, autos %d, list %d, mails %d\n",
-	  dummy.max_rooms, dummy.max_exits, dummy.max_autos,
-	  dummy.max_list, dummy.max_mail);
+  sprintf(stack, "Max: rooms %d, exits %d, autos %d, list %d, mails %d, "
+	  "alias %d, items %d\n",
+	  p2->max_rooms, p2->max_exits, p2->max_autos, p2->max_list,
+	  p2->max_mail, p2->max_alias, p2->max_items);
   stack = strchr(stack, 0);
   sprintf(stack, "Term: width %d, wrap %d\n",
-	  dummy.term_width, dummy.word_wrap);
+	  p2->term_width, p2->word_wrap);
   stack = strchr(stack, 0);
-  if (dummy.script)
+  if (p2->script)
   {
     sprintf(stack, "Scripting on for another %s.\n",
-	    word_time(dummy.script));
+	    word_time(p2->script));
     stack = strchr(stack, 0);
   }
   *stack++ = 0;
@@ -1621,7 +1599,7 @@ void lsu(player * p, char *str)
 	  strcpy(stack, "  Invisible ");
 	  stack = strchr(stack, 0);
 	}
-	else if ((!strcmp(scan->location->owner->lower_name, "main") ||
+	else if ((!strcmp(scan->location->owner->lower_name, SYS_ROOM_OWNER) ||
 		  !strcmp(scan->location->owner->lower_name, "system")))
 	{
 	  if (!strcasecmp(scan->location->id, "room"))
@@ -1668,7 +1646,7 @@ void lsu(player * p, char *str)
       /* This used to be really complicated but stupid since all the su's
          would think it was a bug if they weren't listed on LSU - so now they
          all are --Silver */
-      else if (!(scan->flags & OFF_LSU) && !(scan->flags & BLOCK_SU) && scan->residency & (SU|ASU|LOWER_ADMIN|ADMIN|HCADMIN|CODER))
+      else if (!(scan->flags & OFF_LSU) && !(scan->flags & BLOCK_SU) && scan->residency & (SU | ASU | LOWER_ADMIN | ADMIN | HCADMIN | CODER))
       {
 	count++;
 	*stack = ' ';
@@ -1690,7 +1668,7 @@ void lsu(player * p, char *str)
 	  sprintf(stack, "%-18.18s  ", get_config_msg("su_name"));
 	stack = strchr(stack, 0);
 
-	if ((!strcmp(scan->location->owner->lower_name, "main") ||
+	if ((!strcmp(scan->location->owner->lower_name, SYS_ROOM_OWNER) ||
 	     !strcmp(scan->location->owner->lower_name, "system")))
 	{
 	  if (!strcasecmp(scan->location->id, "room"))
@@ -2018,20 +1996,14 @@ void dibbs(player * p, char *str)
     tell_player(p, " That person is a resident.\n");
     return;
   }
-
-  sprintf(stack, " -=*> %s calls dibbs on %s.\n", p->name, p2->name);
-  stack = end_string(stack);
-  p->flags |= NO_SU_WALL;
-  su_wall(oldstack);
-  stack = oldstack;
-  sprintf(stack, " You call dibbs on %s.\n", p2->name);
-  stack = end_string(stack);
-  tell_player(p, oldstack);
-  stack = oldstack;
-  sprintf(stack, "%s calls dibbs on %s", p->name, p2->name);
-  stack = end_string(stack);
-  log("assist", oldstack);
-  stack = oldstack;
+  if (!strcasecmp(p2->assisted_by, p->name))
+  {
+    tell_player(p, "You've already called dibbs on em ....\n");
+    return;
+  }
+  SW_BUT(p, " -=*> %s calls dibbs on %s.\n", p->name, p2->name);
+  TELLPLAYER(p, " You call dibbs on %s.\n", p2->name);
+  LOGF("assist", "%s calls dibbs on %s", p->name, p2->name);
   strcpy(p2->assisted_by, p->name);	/* Needed line!! --Silver */
 }
 
@@ -2288,7 +2260,7 @@ void unjail(player * p, char *str)
     stack = end_string(stack);
     tell_player(p2, oldstack);
     stack = oldstack;
-    move_to(p2, ENTRANCE_ROOM, 0);
+    move_to(p2, sys_room_id(ENTRANCE_ROOM), 0);
   }
   sprintf(stack, " -=*> %s releases %s from jail.\n", p->name, p2->name);
   stack = end_string(stack);
@@ -2391,7 +2363,7 @@ void go_comfy(player * p, char *str)
     tell_player(p, " You seem to be stuck to the ground.\n");
     return;
   }
-  move_to(p, "main.comfy", 0);
+  move_to(p, sys_room_id("comfy"), 0);
 }
 
 /* Tell you what mode someone is in */
@@ -2724,7 +2696,12 @@ void blank_something(player * p, char *str)
 	p2->icq = 0;
       else if (!strcasecmp(str, "fmsg"))
 	p2->finger_message[0] = 0;
-
+      else if (!strcasecmp(str, "ttt") && p->residency & LOWER_ADMIN)
+      {
+	p2->ttt_draw = 0;
+	p2->ttt_loose = 0;
+	p2->ttt_win = 0;
+      }
       else
       {
 	TELLPLAYER(p, "Wanna tell me what a %s is exactly? =)\n", str);
@@ -2794,6 +2771,12 @@ void blank_something(player * p, char *str)
 	dummy.icq = 0;
       else if (!strcasecmp(str, "fmsg"))
 	dummy.finger_message[0] = 0;
+      else if (!strcasecmp(str, "ttt") && p->residency & LOWER_ADMIN)
+      {
+	dummy.ttt_draw = 0;
+	dummy.ttt_loose = 0;
+	dummy.ttt_win = 0;
+      }
       else
       {
 	TELLPLAYER(p, "Wanna tell me what a %s is exactly? =)\n", str);
@@ -2818,10 +2801,19 @@ void blank_something(player * p, char *str)
 		  "files.\n");
   }
   else
-    tell_player(p, " Format: blank <something> <player>\n"
+  {
+    stack += sprintf(stack, " Format: blank <something> <player>\n"
 	     " You can blank: title, plan, desc, comment, prefix, exitmsg, "
-		"url, entermsg, logonmsg, logoffmsg, hometown, irl_name, "
-		"madefrom, fav1, fav2, fav3, icq, fmsg.\n");
+		  "url, entermsg, logonmsg, logoffmsg, hometown, irl_name, "
+		     "madefrom, fav1, fav2, fav3, icq, fmsg");
+    if (p->residency & LOWER_ADMIN)
+      stack += sprintf(stack, ", ttt\n");
+    else
+      stack += sprintf(stack, "\n");
+    stack = end_string(stack);
+    tell_player(p, oldstack);
+    stack = oldstack;
+  }
 }
 
 
@@ -3079,7 +3071,7 @@ void spank(player * p, char *str)
   marked = next_space(str);
   if (!*marked)
   {
-    tell_player(p, " Format : force <player> <command>\n");
+    tell_player(p, " Format: force <player> <command>\n");
     return;
   }
   *marked++ = 0;
@@ -3087,7 +3079,7 @@ void spank(player * p, char *str)
   if (!p2)
     return;
 
-  if (p2->misc_flags & IN_EDITOR ||
+  if (p2->flags & IN_EDITOR ||
       p2->mode & (MAILEDIT | ROOMEDIT | NEWSEDIT))
   {
     TELLPLAYER(p, " It appears '%s' is editing something....\n"
@@ -3103,6 +3095,7 @@ void spank(player * p, char *str)
     return;
   }
   AW_BUT(p, " -=*> %s forces %s to do '%s'\n", p->name, p2->name, marked);
+  TELLPLAYER(p, " You force %s to do '%s'\n", p2->name, marked);
   strncpy(p2->ibuffer, marked, IBUFFER_LENGTH - 1);
   current_player = p2;
 
@@ -3330,6 +3323,7 @@ void disclaim(player * p, char *str)
 
   p2->system_flags &= ~AGREED_DISCLAIMER;
 }
+
 void make_git(player * p, char *str)
 {
 
@@ -3353,6 +3347,12 @@ void make_git(player * p, char *str)
   if (!git)
     return;
 
+  if (!(git->residency))
+  {
+    tell_player(p, " You can't git non-residents!\n");
+    return;
+  }
+
   /* Missing from PG and source of much amusement on UberWorld */
 
   if (git == p)
@@ -3369,6 +3369,7 @@ void make_git(player * p, char *str)
 
   strncpy(git->git_string, gitstr, MAX_DESC - 3);
   strncpy(git->git_by, p->name, MAX_NAME - 3);
+  git->residency |= GIT;
   tell_player(p, " All done =) \n");
 
   SUWALL(" -=*> %s declares %s to be a git -- %s\n",
@@ -3398,6 +3399,7 @@ void clear_git(player * p, char *str)
   }
   p2->git_string[0] = 0;
   p2->git_by[0] = 0;
+  p2->residency &= ~GIT;
 
   tell_player(p, " All done.\n");
   SUWALL(" -=*> %s ungits %s.\n", p->name, p2->name);
@@ -3715,11 +3717,7 @@ void list_builders(player * p, char *str)
 }
 
 
-#ifdef REDHAT5
-int valid_emergency(struct dirent *d)
-#else /* REDHAT5 */
-int valid_emergency(const struct dirent *d)
-#endif				/* !REDHAT5 */
+int valid_emergency(DIRENT_PROTO struct dirent *d)
 {
   char *dotter;
 
@@ -3729,11 +3727,7 @@ int valid_emergency(const struct dirent *d)
 }
 
 
-#ifdef REDHAT5
-int valid_script(struct dirent *d)
-#else /* REDHAT5 */
-int valid_script(const struct dirent *d)
-#endif				/* !REDHAT5 */
+int valid_script(DIRENT_PROTO struct dirent *d)
 {
   char *dotter;
 
@@ -3765,7 +3759,7 @@ void vscript(player * p, char *str)
     {
       tell_player(p, " There are currently no files in there ...\n");
       if (de)
-	FREE(de);
+	free(de);
       return;
     }
     if (vemerg)
@@ -3842,4 +3836,35 @@ void vscript(player * p, char *str)
   pager(p, oldstack);
   FREE(lf.where);
   stack = oldstack;
+}
+
+void ammend_to_log(player * p, char *str)
+{
+  char *oldstack = stack, *arg = next_space(str);
+  struct stat sbuf;
+
+  if (!*arg)
+  {
+    tell_player(p, " Format : ammend <log> <your comments>\n");
+    return;
+  }
+  *arg++ = 0;
+  if (*str == '.' || strchr(str, '/'))
+  {
+    tell_player(p, " You just caint do dat.\n");
+    return;
+  }
+  sprintf(stack, "logs/%s.log", str);
+  stack = end_string(stack);
+  if (stat(oldstack, &sbuf) < 0)
+  {
+    tell_player(p, " No such log for ammendment of any comments.\n");
+    stack = oldstack;
+    return;
+  }
+  stack = oldstack;
+  LOGF(str, "Ammendment by %s : %s", p->name, arg);
+  SW_BUT(p, " -=*> %s ammends to the '%s' log ...\n"
+	 " -=*> %s\n", p->name, str, arg);
+  TELLPLAYER(p, " Ammendment to %s log made.\n", str);
 }

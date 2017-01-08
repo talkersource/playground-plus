@@ -31,6 +31,7 @@ extern void intercom_change_alias(player *,char *);
 extern void intercom_change_name(player *,char *);
 extern void intercom_change_port(player *,char *);
 extern void intercom_command(player *,char *);
+extern void intercom_dynamic(player *,char *);
 extern void intercom_hide(player *,char *);
 extern void intercom_home(player *,char *);
 extern void intercom_locate_name(player *,char *);

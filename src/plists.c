@@ -4,6 +4,15 @@
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * Horrible little hack here by astyanax to stop FreeBSD 3.2 from
+ * #defining away inet_addr...
+ */
+
+#ifdef BSDISH
+#define _ARPA_INET_H_ 1
+#endif
+
 #include <stdlib.h>
 #include <ctype.h>
 #include <time.h>
@@ -36,7 +45,7 @@ extern void stampLogin(char *);
 /* interns */
 
 void error_on_load(int), hcadmin_check_password(player *), convert_pg_to_pgplus(player *),
-  player_flags(player *), motd(player *, char *);
+  player_flags(player *), motd(player *, char *), got_password(player *, char *);
 int bad_player_load = 0;
 char player_loading[MAX_NAME + 2];
 jmp_buf jmp_env;
@@ -142,8 +151,7 @@ void do_update(int rooms)
     {
       for (scan = *hash; scan; scan = scan->next)
       {
-	if (scan->residency != STANDARD_ROOMS
-	    && scan->residency != SYSTEM_ROOM
+	if (scan->residency != SYSTEM_ROOM
 	    && (scan->residency != BANISHED) && (scan->residency != BANISHD))
 	{
 	  memset((char *) p, 0, sizeof(player));
@@ -211,8 +219,7 @@ void do_birthdays()
     hash = saved_hash[j];
     for (i = 0; i < HASH_SIZE; i++, hash++)
       for (scan = *hash; scan; scan = scan->next)
-	if (scan->residency != STANDARD_ROOMS
-	    && scan->residency != SYSTEM_ROOM
+	if (scan->residency != SYSTEM_ROOM
 	 && (scan->residency != BANISHED) && (!(scan->residency & BANISHD)))
 	{
 	  memset((char *) p, 0, sizeof(player *));
@@ -331,7 +338,7 @@ void extract_player(char *where, int length)
     if (((time(0) - (sp->last_on)) > (poto * ONE_WEEK)) &&
 	!(sp->residency & NO_TIMEOUT))
     {
-      log("timeouts", sp->lower_name);
+      LOGF("timeouts", "%s timeouts", sp->lower_name);
       remove_player_file(sp->lower_name);
       stack = oldstack;
       return;
@@ -364,20 +371,12 @@ void hard_load_one_file(char c)
 
   oldstack = stack;
   if (sys_flags & VERBOSE)
-  {
-    sprintf(oldstack, "Loading player file '%c'.", c);
-    stack = end_string(oldstack);
-    log("boot", oldstack);
-    stack = oldstack;
-  }
+    LOGF("boot", "Loading player file '%c'.", c);
+
   sprintf(oldstack, "files/players/%c", c);
   fd = open(oldstack, O_RDONLY | O_NDELAY);
   if (fd < 0)
-  {
-    sprintf(oldstack, "Failed to load player file '%c'", c);
-    stack = end_string(oldstack);
-    log("error", oldstack);
-  }
+    LOGF("error", "Failed to load player file '%c'", c);
   else
   {
     length = lseek(fd, 0, SEEK_END);
@@ -397,11 +396,8 @@ void hard_load_one_file(char c)
 	}
 	else
 	{
-	  sprintf(oldstack, "Bad Player \'%s\' deleted on load!",
-		  player_loading);
-	  stack = end_string(oldstack);
-	  log("boot", oldstack);
-	  stack = oldstack;
+	  LOGF("error", "Bad Player \'%s\' deleted on load!",
+	       player_loading);
 	  remove_player_file(player_loading);
 	  bad_player_load = 0;
 	}
@@ -428,11 +424,11 @@ void hard_load_files(void)
 
   sa.sa_handler = error_on_load;
 
-#ifdef REDHAT5
+#ifdef HAVE_SIGEMPTYSET
   sigemptyset(&sa.sa_mask);
 #else
   sa.sa_mask = 0;
-#endif
+#endif /* HAVE_SIGEMPTYSET */
   sa.sa_flags = 0;
   sigaction(SIGSEGV, &sa, 0);
   sigaction(SIGSEGV, &sa, 0);
@@ -466,12 +462,8 @@ void write_to_file(saved_player * sp)
   int length;
   oldstack = stack;
   if (sys_flags & VERBOSE && sys_flags & PANIC)
-  {
-    sprintf(oldstack, "Attempting to write player '%s'.", sp->lower_name);
-    stack = end_string(oldstack);
-    log("sync", oldstack);
-    stack = oldstack;
-  }
+    LOGF("sync", "Attempting to write player '%s'.", sp->lower_name);
+
   stack += 4;
   stack = store_string(stack, sp->lower_name);
   stack = store_int(stack, sp->last_on);
@@ -512,17 +504,12 @@ void sync_to_file(char c, int background)
 
   oldstack = stack;
   if (sys_flags & VERBOSE)
-  {
-    sprintf(oldstack, "Syncing File '%c'.", c);
-    stack = end_string(oldstack);
-    log("sync", oldstack);
-    stack = oldstack;
-  }
+    LOGF("sync", "Syncing File '%c'.", c);
+
   hash = saved_hash[((int) c - (int) 'a')];
   for (i = 0; i < HASH_SIZE; i++, hash++)
     for (scan = *hash; scan; scan = scan->next)
-      if (scan->residency != STANDARD_ROOMS
-	  && scan->residency != SYSTEM_ROOM
+      if (scan->residency != SYSTEM_ROOM
 	  && (!(scan->residency & NO_SYNC) || scan->residency == BANISHED))
 	write_to_file(scan);
   length = (int) stack - (int) oldstack;
@@ -613,7 +600,7 @@ int remove_player_file(char *name)
 
   if (!isalpha(*name))
   {
-    log("error", "Tried to remove non-player from save files.");
+    LOGF("error", "Tried to remove non-player from save files [%s].", name);
     return 0;
   }
   strcpy(stack, name);
@@ -760,7 +747,7 @@ file construct_save_data(player * p)
   stack = store_string(stack, p->ingredients);
 
 /* --------------------------------------------------------------------
-  
+
    If you are upgrading from PG96 and you added any extra elements to the
    player files then you should insert them in here now. */
 
@@ -780,11 +767,9 @@ file construct_save_data(player * p)
   for (i = 0; i < MAX_LAST_NEWS_INTS; i++)
     stack = store_int(stack, p->news_last[i]);
 
-#ifdef DSC
   for (i = 0; i < MAX_CHANNELS; i++)
     stack = store_string(stack, p->channels[i]);
   stack = store_int(stack, p->dsc_flags);
-#endif /* DSC */
 
 /* end of my spooning... (well, not the end of me spooning, but the end of this mega-batch) */
   d.length = (int) stack - (int) d.where;
@@ -809,16 +794,11 @@ void save_player(player * p)
     return;
 
   if (sys_flags & PANIC)
-  {
-    c = stack;
-    sprintf(c, "Attempting to save player %s.", p->name);
-    stack = end_string(c);
-    log("boot", c);
-    stack = c;
-  }
+    LOGF("boot", "Attempting to save player %s.", p->name);
+
   if (!(isalpha(p->lower_name[0])))
   {
-    log("error", "Tried to save non-player.");
+    LOGF("error", "Tried to save non-player [%s]", p->lower_name);
     return;
   }
   if (p->residency & SYSTEM_ROOM)
@@ -884,7 +864,7 @@ void save_player(player * p)
   data = construct_save_data(p);
   if (!data.length)
   {
-    log("error", "Bad construct save.");
+    LOGF("error", "Bad construct save [%s]", p->lower_name);
     return;
   }
   if (old && sp->data.where)
@@ -931,7 +911,7 @@ void create_banish_file(char *str)
       sum += (int) (*c) - 'a';
     else
     {
-      log("error", "Tried to banish bad player");
+      LOGF("error", "Tried to banish bad player, [%s]", sp->lower_name);
       FREE(sp);
       return;
     }
@@ -996,7 +976,7 @@ int load_player(player * p)
   p->custom_flags = sp->custom_flags;
   p->misc_flags = sp->misc_flags;
   p->pennies = sp->pennies;
-  if (sp->residency == BANISHED || sp->residency == STANDARD_ROOMS
+  if (sp->residency == BANISHED
       || sp->residency == SYSTEM_ROOM
       || sp->residency == BANISHD)
     return 1;
@@ -1069,7 +1049,7 @@ int load_player(player * p)
 /* end of trap's shit - the loaded version. */
 
 /* --------------------------------------------------------------------
-  
+
    If you are upgrading from PG96 and you added any extra elements to the
    player files then you should insert them in here now. */
 
@@ -1089,11 +1069,9 @@ int load_player(player * p)
   for (i = 0; i < MAX_LAST_NEWS_INTS; i++)
     r = get_int_safe(&p->news_last[i], r, sp->data);
 
-#ifdef DSC
   for (i = 0; i < MAX_CHANNELS; i++)
     r = get_string_safe(p->channels[i], r, sp->data);
   r = get_int_safe(&p->dsc_flags, r, sp->data);
-#endif /* DSC */
 
 
   if (((p->term_width) >> 1) <= (p->word_wrap))
@@ -1457,8 +1435,8 @@ int motd_is_new(player * p, char *filename)
   struct stat statblk;
   char motdfile[20];		/* forget the magic number rules :P */
 
-  if (!(p->saved))		/* hcadmin new login */
-    return 1;
+  if (!(p->saved) || !p->residency)		/* hcadmin new login */
+    return 0;
   sprintf(motdfile, "files/%s.msg", filename);
   stat(motdfile, &statblk);	/* Get the stats on the file */
   if (statblk.st_mtime >= p->saved->last_on)
@@ -1476,6 +1454,16 @@ int motd_is_new(player * p, char *filename)
 void finger_at_name_prompt(player * p, char *str)
 {
   p->misc_flags |= NOCOLOR;
+
+  if (!str || !(*str) || !strcasecmp(str, "me") ||
+      !strcasecmp(str, "friends") || !strcmp(str, p->lower_name))
+  {
+    /* stop people fingering friends or themselves -- blimey */
+    do_prompt(p, "Enter a player to finger: ");
+    p->input_to_fn = finger_at_name_prompt;
+    return;
+  }
+
   newfinger(p, str);
   do_prompt(p, get_plists_msg("initial_name"));
   p->input_to_fn = got_name;
@@ -1549,7 +1537,7 @@ void finish_player_login(player * p, char *str)
   }
   if (!(p->location))
   {
-    trans_to(p, ENTRANCE_ROOM);
+    trans_to(p, sys_room_id(ENTRANCE_ROOM));
   }
   if (p->flags & RECONNECTION)
   {
@@ -1565,12 +1553,13 @@ void finish_player_login(player * p, char *str)
   else
   {
     do_inform(p, get_plists_msg("inform_login"));
+    stack = oldstack;
 
     if (strlen(p->logonmsg) < 1)
     {
       stack += sprintf(stack, "%s %s enters the program. ",
 		       get_config_msg("logon_prefix"), p->name);
-      stack += sprintf(stack, "%s\n", get_config_msg("logon_suffix"));
+      stack += sprintf(stack, "^N%s\n", get_config_msg("logon_suffix"));
     }
     else
     {
@@ -1578,13 +1567,13 @@ void finish_player_login(player * p, char *str)
       {
 	stack += sprintf(stack, "%s %s%s ",
 		      get_config_msg("logon_prefix"), p->name, p->logonmsg);
-	stack += sprintf(stack, "%s\n", get_config_msg("logon_suffix"));
+	stack += sprintf(stack, "^N%s\n", get_config_msg("logon_suffix"));
       }
       else
       {
 	stack += sprintf(stack, "%s %s %s ",
 		      get_config_msg("logon_prefix"), p->name, p->logonmsg);
-	stack += sprintf(stack, "%s\n", get_config_msg("logon_suffix"));
+	stack += sprintf(stack, "^N%s\n", get_config_msg("logon_suffix"));
       }
     }
     stack = end_string(oldstack);
@@ -1631,10 +1620,8 @@ void finish_player_login(player * p, char *str)
       hello = do_alias_match(p, "_logon");
       if (strcmp(hello, "\n"))
 	match_commands(p, "_logon");
-#ifdef DSC
-      connect_channels(p);
-#endif /* DSC */
 
+      connect_channels(p);
     }
   }
   /* clear the chanflags, just in case... */
@@ -1694,12 +1681,7 @@ void show_reg_motd_login(player * p, char *str)
   p->input_to_fn = finish_player_login;
   return;
 }
-void show_new_motd_login(player * p, char *str)
-{
-  tell_player(p, newbie_msg.where);
-  do_prompt(p, get_plists_msg("hit_return"));
-  p->input_to_fn = show_reg_motd_login;
-}
+
 void set_term_hitells_asty(player * p, char *str)
 {
   if (!*str)
@@ -1707,13 +1689,18 @@ void set_term_hitells_asty(player * p, char *str)
   else
     hitells(p, str);
 
-  if (p->term == 0)		/* So we don't crash if they set an unknown */
-    hitells(p, "vt100");	/* terminal type ... */
+  /* if they don't want colour, don't ask them any colour related
+     questions ... */
 
+  if (p->term == 0)
+  {
+    show_reg_motd_login(p, str);
+    return;
+  }
 
   p->misc_flags &= ~NOCOLOR;
 
-  TELLPLAYER(p, "\n If you can see this word in ^Cc^Ro^Yl^Bo^Pu^Hr^n then your telnet program supports\n"
+  TELLPLAYER(p, "\n If you can see this word in ^Cc^Ro^Yl^Bo^Pu^Hr^N then your telnet program supports\n"
 	   "  colour and we recommend that you turn in on to get the most\n"
 	     "  from %s.\n\n", get_config_msg("talker_name"));
   do_prompt(p, "Would you like colour on? (Y or N): ");
@@ -1730,7 +1717,7 @@ void colours_decide(player * p, char *str)
   if (strncasecmp(str, "y", 1))
   {
     p->misc_flags |= NOCOLOR;
-    show_new_motd_login(p, str);
+    show_reg_motd_login(p, str);
     return;
   }
   TELLPLAYER(p, "\n %s allows you to have text hi-lighted in different colours\n"
@@ -1748,25 +1735,19 @@ void syscolour_decide(player * p, char *str)
   if (!strncasecmp(str, "y", 1))
     p->misc_flags |= SYSTEM_COLOR;
 
-  show_new_motd_login(p, str);
+  show_reg_motd_login(p, str);
 }
 
 void in_sulog(player * p)
 {
-
-  char *oldstack;
   int csu;
 
   csu = true_count_su();
 
-  oldstack = stack;
   if (p->residency & ADMIN)
-    sprintf(stack, "%s login (admin) - %d sus now on.", p->name, csu + 1);
+    LOGF("su", "%s login (admin) - %d sus now on.", p->name, csu + 1);
   else
-    sprintf(stack, "%s login (su) - %d sus now on.", p->name, csu + 1);
-  stack = end_string(stack);
-  log("su", oldstack);
-  stack = oldstack;
+    LOGF("su", "%s login (su) - %d sus now on.", p->name, csu + 1);
 }
 
 void link_to_program(player * p)
@@ -1824,8 +1805,17 @@ void link_to_program(player * p)
 	p->fd = holder;
 	strncpy(search->inet_addr, p->inet_addr, MAX_INET_ADDR - 1);
 	strncpy(search->num_addr, p->num_addr, MAX_INET_ADDR - 1);
+#ifdef IDENT
 	strncpy(search->remote_user, p->remote_user, MAX_REMOTE_USER - 1);
-	search->idle = 0;
+        search->ident_id = p->ident_id;
+        p->ident_id = 0;
+#endif /* IDENT */
+        /*
+         * Uncomment the lines below if you have the DNS server installed
+         * search->dns_id = p->dns_id;
+         * p->dns_id = 0;
+	 */
+        search->idle = 0;
 	destroy_player(p);
 
 	do_inform(search, get_plists_msg("inform_reconnect"));
@@ -1930,11 +1920,8 @@ void link_to_program(player * p)
 
 
   if (p->flags & SITE_LOG)
-  {
-    sprintf(oldstack, "%s - %s", p->name, p->inet_addr);
-    stack = end_string(oldstack);
-    log("site", oldstack);
-  }
+    LOGF("site", "%s - %s", p->name, p->inet_addr);
+
   t = time(0);
   log_time = localtime(&t);
 
@@ -2106,6 +2093,7 @@ void got_new_name(player * p, char *str)
 	newfinger(p, cpy);
 	do_prompt(p, get_plists_msg("second_name"));
 	p->input_to_fn = got_name;
+	stack = oldstack;
 	return;
       }
       /*
@@ -2125,19 +2113,24 @@ void got_new_name(player * p, char *str)
     }
   }
 
+  if (reserved_name(str))
+  {  
+    tell_player(p, "Sorry, but you cannot use that name. Please choose another.\n");
+    do_prompt(p, get_plists_msg("second_name"));  
+    p->input_to_fn = got_name;  
+    stack = oldstack;  
+    return;  
+  }  
+     
+
   if (length > (MAX_NAME - 3))
   {
     tell_player(p, get_plists_msg("too_long_name"));
     do_prompt(p, get_plists_msg("second_name"));
     p->input_to_fn = got_new_name;
     if (sys_flags & VERBOSE)
-    {
-      cpy = stack;
-      sprintf(cpy, "Name too long : %s\n", str);
-      stack = end_string(cpy);
-      log("connection", cpy);
-      stack = cpy;
-    }
+      LOGF("connection", "Name too long : %s\n", str);
+
     stack = oldstack;
     return;
   }
@@ -2169,6 +2162,7 @@ void got_new_name(player * p, char *str)
   {
     TELLPLAYER(p, "%s\n", get_plists_msg("login_quit"));
     quit(p, 0);
+    return;
   }
 
   if (!strcasecmp(oldstack, "guest"))
@@ -2196,10 +2190,10 @@ void got_new_name(player * p, char *str)
   }
   if (restore_player_title(p, oldstack, 0))
   {
-    tell_player(p, " Sorry, there is already someone who uses the "
-		"program with that name.\n\n");
-    do_prompt(p, get_plists_msg("second_name"));
-    p->input_to_fn = got_new_name;
+    TELLPLAYER(p, get_plists_msg("char_exists"), p->name);
+    password_mode_on(p);
+    do_prompt(p, get_plists_msg("passwd_prompt"));
+    p->input_to_fn = got_password;
     stack = oldstack;
     return;
   }
@@ -2332,9 +2326,9 @@ void got_password(player * p, char *str)
     if (p->password_fail < 3)
     {
       if (p->password_fail == 2)
-	tell_player(p, " Incorrect password - last chance!\n\n");
+	tell_player(p, "\n Incorrect password - last chance!\n\n");
       else
-	tell_player(p, " Incorrect password - try again!\n\n");
+	tell_player(p, "\n Incorrect password - try again!\n\n");
       p->password_fail++;
       password_mode_on(p);
       do_prompt(p, get_plists_msg("passwd_prompt"));
@@ -2345,13 +2339,9 @@ void got_password(player * p, char *str)
     sprintf(stack, "Password fail: %s - %s", get_address(p, NULL), p->name);
     stack = end_string(stack);
     if (p->residency & SU)
-    {
       log("sufailpass", oldstack);
-    }
     else
-    {
       log("connection", oldstack);
-    }
     stack = oldstack;
     p->flags |= NO_SAVE_LAST_ON;
     quit(p, "");
@@ -2381,6 +2371,28 @@ int site_soft_splat(player * p)
   else
     return 0;
 }
+
+void newbie_was_screend(player * p)
+{
+  tell_player(p, nonewbies_msg.where);
+  quit(p, "");
+}
+
+void newbie_dummy_fn(player * p, char *str)
+{
+  tell_player(p, "\n One moment, please.\n\n");
+}
+
+void inform_sus_screening(player * p)
+{
+  SUWALL("\n");
+  SUWALL(" -=*> Screening Information\n"
+	 " -=*> '%s' is a newbie from %s\n"
+	 " -=*> To allow them to connect, type:  allow %s\n"
+	 " -=*> To make them try later, type:    deny %s\n\n",
+	 p->name, p->inet_addr, p->lower_name, p->lower_name);
+}
+
 
 /* calls here when the player has entered their name */
 
@@ -2412,13 +2424,8 @@ void got_name(player * p, char *str)
     p->input_to_fn = got_name;
 
     if (sys_flags & VERBOSE)
-    {
-      cpy = stack;
-      sprintf(cpy, "Name too long : %s\n", str);
-      stack = end_string(cpy);
-      log("connection", cpy);
-      stack = cpy;
-    }
+      LOGF("connection", "Name too long : %s\n", str);
+
     stack = oldstack;
     return;
   }
@@ -2461,6 +2468,7 @@ void got_name(player * p, char *str)
 	newfinger(p, cpy);
 	do_prompt(p, get_plists_msg("initial_name"));
 	p->input_to_fn = got_name;
+	stack = oldstack;
 	return;
       }
       /*
@@ -2468,6 +2476,7 @@ void got_name(player * p, char *str)
        */
       do_prompt(p, "Enter a player to finger: ");
       p->input_to_fn = finger_at_name_prompt;
+      stack = oldstack;
       return;
     }
     else
@@ -2486,6 +2495,15 @@ void got_name(player * p, char *str)
     stack = oldstack;
     return;
   }
+  if (reserved_name(oldstack))
+  {
+    tell_player(p, "Sorry, but you cannot use that name. Please choose another.\n");
+    do_prompt(p, get_plists_msg("second_name"));
+    p->input_to_fn = got_name;
+    stack = oldstack;
+    return;
+  }
+
   if (iss)
     while (*++cpy == ' ');
   if (restore_player_title(p, oldstack, iss ? cpy : 0))
@@ -2611,6 +2629,23 @@ void got_name(player * p, char *str)
     stack = oldstack;
     return;
   }
+  if (sys_flags & SCREENING_NEWBIES)
+  {
+    if (count_su() < 1)
+    {
+      tell_player(p, nonewbies_msg.where);
+      quit(p, "");
+      stack = oldstack;
+      return;
+    }
+    p->timer_fn = newbie_was_screend;
+    p->timer_count = 120;
+    p->input_to_fn = newbie_dummy_fn;
+    inform_sus_screening(p);
+    stack = oldstack;
+    return;
+  }
+
   search = hashlist[((int) (p->lower_name[0])) - (int) 'a' + 1];
   for (; search; search = search->hash_next)
     if (!strcmp(p->lower_name, search->lower_name))
@@ -2642,6 +2677,30 @@ void connect_to_prog(player * p)
   cp = current_player;
   current_player = p;
   tell_player(p, "\377\373\031");	/* send will EOR */
+
+  /* Some people are creating coloured title screens - this is a BAD
+     idea because it can cause problems since we haven't found out their
+     terminal type.    
+
+     The solution is not to use colour until *after* the term type and
+     question about whether they can see colour but often people insist
+     on using it before then.
+
+     If you'd like colour in your title page remove the p->misc_flags
+     line below but BE SURE to put it in immediately after the line that
+     says p->flags |= IAC_GA_DO;
+
+     Remember! The worlds most popular telnet program is the one that
+     comes with Windows and that can't cope with colour! (so why assume
+     the opposite?)
+
+*/
+
+  p->misc_flags |= NOCOLOR;    /* assume no colour support */
+  /* p->term = 3      will be needed if the above is removed */
+
+  /* show title page */
+
   if (!wcm)
     tell_player(p, connect_msg.where);
   else if (wcm == 1)
@@ -2662,7 +2721,7 @@ void connect_to_prog(player * p)
   do_prompt(p, oldstack);
   stack = oldstack;
   p->input_to_fn = got_name;
-  p->timer_count = 60;
+  p->timer_count = 3 * ONE_MINUTE;
   p->timer_fn = login_timeout;
   current_player = cp;
 }
@@ -2676,8 +2735,6 @@ void connect_to_prog(player * p)
 void motd(player * p, char *str)
 {
   char *oldstack = stack, mid[80];
-
-  /* Newbies only get the newbie motd */
 
   if (!p->residency)
   {
@@ -2774,20 +2831,21 @@ int match_player(char *str1, char *str2)
 void view_saved_lists(player * p, char *str)
 {
   saved_player *scan, **hash;
-  int i, j;
+  int i, j, hit = 0, res = 0, ban = 0, rom = 0;
   char *oldstack;
   oldstack = stack;
   if (!*str || !isalpha(*str))
   {
-    tell_player(p, " Argument is a letter.\n");
+    tell_player(p, " Format : lsr <letter>\n");
     return;
   }
-  strcpy(stack, "[HASH] [NAME]               12345678901234567890123456789012\n");
+  strcpy(stack, "[HASH] [NAME]               " RES_BIT_HEAD "\n");
   stack = strchr(stack, 0);
   hash = saved_hash[((int) (tolower(*str)) - (int) 'a')];
   for (i = 0; i < HASH_SIZE; i++, hash++)
     for (scan = *hash; scan; scan = scan->next)
     {
+      hit++;
       sprintf(stack, "[%d]", i);
       j = strlen(stack);
       stack = strchr(stack, 0);
@@ -2800,29 +2858,54 @@ void view_saved_lists(player * p, char *str)
 	*stack++ = ' ';
       switch (scan->residency)
       {
-	case STANDARD_ROOMS:
+	case SYSTEM_ROOM:
+	  rom++;
 	  strcpy(stack, "Standard room file.");
 	  break;
 	case BANISHD:
+	  ban++;
 	  strcpy(stack, "BANISHED (Name Only)");
 	  break;
 	default:
-	  if (scan->residency & BANISHD)
-	  {
-	    strcpy(stack, "BANISHED");
-	  }
-	  else
-	  {
-	    strcpy(stack, bit_string(scan->residency));
-	  }
+/* lets show there privs anyways..as there Is a pfile there
+   if (scan->residency & BANISHD)
+   {
+   strcpy(stack, "BANISHED");
+   }
+   else
+ */
+	  res++;
+	  strcpy(stack, privs_bit_string(scan->residency));
 	  break;
       }
       stack = strchr(stack, 0);
       *stack++ = '\n';
     }
-  *stack++ = 0;
-  pager(p, oldstack);
+  if (hit)
+  {
+    stack += sprintf(stack, "--- %d files (", hit);
+    if (res)
+      stack += sprintf(stack, "%d res", res);
+    if (ban)
+      stack += sprintf(stack, ", ");
+    if (ban > 1)
+      stack += sprintf(stack, "%d bans", ban);
+    else if (ban == 1)
+      stack += sprintf(stack, "1 ban");
+    if (rom)
+      stack += sprintf(stack, ", ");
+    if (rom > 1)
+      stack += sprintf(stack, "%d rooms", rom);
+    else if (rom == 1)
+      stack += sprintf(stack, "1 room");
+    stack += sprintf(stack, ") in the '%c' hash\n", *str);
+    *stack++ = 0;
+    pager(p, oldstack);
+    stack = oldstack;
+    return;
+  }
   stack = oldstack;
+  TELLPLAYER(p, " There are no files at all in the '%c' hash\n", *str);
 }
 
 /* external routine to check updates */
@@ -2853,10 +2936,12 @@ void player_flags(player * p)
   str = stack;
   if (p->residency == NON_RESIDENT)
   {
-    log("error", "You've sponged Chris. Tried to player_flags a non-resi");
+    LOGF("error", "trying to player_flags newbie [%s]", p->lower_name);
     return;
   }
-  if (!p->saved)
+  if (!p->saved && p->residency & HCADMIN)
+    tell_player(p, " Set your email and password ASAFP.\n");
+  else if (!p->saved)
     tell_player(p, " Eeeeeeek ! No saved bits !\n");
   else
   {
@@ -2926,6 +3011,10 @@ void player_flags(player * p)
       show_logs(p, "new");
     if (p->residency & SU && sys_flags & CLOSED_TO_NEWBIES)
       TELLPLAYER(p, " %s is closed to newbies.\n",
+		 get_config_msg("talker_name"));
+    if (p->residency & SU && sys_flags & SCREENING_NEWBIES &&
+	!(sys_flags & CLOSED_TO_NEWBIES))
+      TELLPLAYER(p, " %s is screening newbies\n",
 		 get_config_msg("talker_name"));
   }
   tell_player(p, " --\n");
@@ -3100,8 +3189,6 @@ void res_count(player * p, char *str)
 #ifdef ROBOTS
 	  case ROBOT_PRIV:
 #endif
-	  case STANDARD_ROOMS:
-	    break;
 	  case BANISHD:
 	    banned++;
 	    break;
@@ -3236,8 +3323,6 @@ void xref_name(player * p, char *str)
       {
 	switch (scanlist->residency)
 	{
-	  case STANDARD_ROOMS:
-	    break;
 	  case BANISHD:
 	    break;
 	  default:
@@ -3286,7 +3371,6 @@ void xref_player_email(player * p, char *str)
       {
 	switch (scanlist->residency)
 	{
-	  case STANDARD_ROOMS:
 	  case BANISHD:
 	  case BANISHED:
 	    break;
@@ -3333,7 +3417,6 @@ void xref_player_site(player * p, char *str)
       {
 	switch (scanlist->residency)
 	{
-	  case STANDARD_ROOMS:
 	  case BANISHD:
 	  case BANISHED:
 	    break;
@@ -3411,7 +3494,6 @@ void list_couples(player * p, char *str)
 	{
 	  switch (scanlist->residency)
 	  {
-	    case STANDARD_ROOMS:
 	    case BANISHED:
 	    case BANISHD:
 	      break;
@@ -3517,4 +3599,604 @@ saved_player *find_matched_sp_quiet(char *str)
 saved_player *find_matched_sp_verbose(char *str)
 {
   return find_matched_sp_guts(str, 1);
+}
+
+char *privs_bit_string(int p)
+{
+  static char buf[160];
+  char *ptr;
+
+  memset(buf, 0, 160);
+  ptr = buf;
+
+  if (p & NO_SYNC)
+    *ptr++ = 'N';
+  else
+    *ptr++ = '_';
+  if (p & BANISHD)
+    *ptr++ = 'B';
+  else
+    *ptr++ = '_';
+  if (p & SYSTEM_ROOM)
+    *ptr++ = 'S';
+  else
+    *ptr++ = '_';
+  if (p & ROBOT_PRIV)
+    *ptr++ = 'R';
+  else
+    *ptr++ = '_';
+  *ptr++ = '|';
+  if (p & BASE)
+    *ptr++ = 'b';
+  else
+    *ptr++ = '_';
+  if (p & ECHO_PRIV)
+    *ptr++ = 'e';
+  else
+    *ptr++ = '_';
+  if (p & MAIL)
+    *ptr++ = 'm';
+  else
+    *ptr++ = '_';
+  if (p & LIST)
+    *ptr++ = 'l';
+  else
+    *ptr++ = '_';
+  if (p & BUILD)
+    *ptr++ = 'r';
+  else
+    *ptr++ = '_';
+  if (p & SESSION)
+    *ptr++ = 's';
+  else
+    *ptr++ = '_';
+  *ptr++ = '|';
+  if (p & GIT)
+    *ptr++ = 'G';
+  else
+    *ptr++ = '_';
+  if (p & NO_TIMEOUT)
+    *ptr++ = 'X';
+  else
+    *ptr++ = '_';
+  if (p & SPOD)
+    *ptr++ = 'O';
+  else
+    *ptr++ = '_';
+  if (p & SPECIALK)
+    *ptr++ = 'K';
+  else
+    *ptr++ = '_';
+  if (p & HOUSE)
+    *ptr++ = 'H';
+  else
+    *ptr++ = '_';
+  if (p & MINISTER)
+    *ptr++ = 'M';
+  else
+    *ptr++ = '_';
+  if (p & SCRIPT)
+    *ptr++ = 'S';
+  else
+    *ptr++ = '_';
+  if (p & BUILDER)
+    *ptr++ = 'B';
+  else
+    *ptr++ = '_';
+  *ptr++ = '|';
+  if (p & WARN)
+    *ptr++ = 'W';
+  else
+    *ptr++ = '_';
+  if (p & DUMB)
+    *ptr++ = 'F';
+  else
+    *ptr++ = '_';
+  if (p & PROTECT)
+    *ptr++ = 'P';
+  else
+    *ptr++ = '_';
+  if (p & TRACE)
+    *ptr++ = 'T';
+  else
+    *ptr++ = '_';
+  *ptr++ = '|';
+  if (p & PSU)
+    *ptr++ = '1';
+  else
+    *ptr++ = '_';
+  if (p & SU)
+    *ptr++ = '2';
+  else
+    *ptr++ = '_';
+  if (p & ASU)
+    *ptr++ = '3';
+  else
+    *ptr++ = '_';
+  if (p & ADC)
+    *ptr++ = '4';
+  else
+    *ptr++ = '_';
+  if (p & LOWER_ADMIN)
+    *ptr++ = '5';
+  else
+    *ptr++ = '_';
+  if (p & ADMIN)
+    *ptr++ = '6';
+  else
+    *ptr++ = '_';
+  if (p & CODER)
+    *ptr++ = '7';
+  else
+    *ptr++ = '_';
+  if (p & HCADMIN)
+    *ptr++ = '8';
+  else
+    *ptr++ = '_';
+
+  return buf;
+}
+
+
+
+typedef char *search_func(player *, char *);
+
+search_func
+name_search, xref_search, email_search, site_search, url_search,
+richest_search, resby_search, staff_stats_search, trouble_search,
+swarn_search, git_search;
+
+
+struct search_type
+{
+  char *type;
+  int priv;
+  search_func *search_func;
+  char *desc;
+}
+SearchTypes[] =
+{
+  {
+    "names", SU, name_search, "Search for string in names"
+  }
+  ,
+  {
+    "xref", SU, xref_search, "Search for string at beginning of names"
+  }
+  ,
+  {
+    "sites", SU, site_search, "Search for string in last site"
+  }
+  ,
+  {
+    "emails", ADMIN, email_search, "Search for string in emails"
+  }
+  ,
+  {
+    "urls", SU, url_search, "Search for string in urls"
+  }
+  ,
+  {
+    "gits", SU, git_search, "Search for string in git message"
+  }
+  ,
+  {
+    "swarn", SU, swarn_search, "Search for string in saved warns"
+  }
+  ,
+  {
+    "resby", LOWER_ADMIN, resby_search, "Search for players res'd by a certain su"
+  }
+  ,
+  {
+    "richest", LOWER_ADMIN, richest_search, "Search for players with excess money"
+  }
+  ,
+  {
+    "trouble", SU, trouble_search, "Search for trouble causers"
+  }
+  ,
+  {
+    "sstats", LOWER_ADMIN, staff_stats_search, "View staff stats"
+  }
+  ,
+  {
+    "", 0, 0, ""
+  }
+};
+typedef struct search_type search_type;
+
+
+void master_search(player * p, char *str, search_type * st)
+{
+  char c, *oldstack = stack, *got, mid[160];
+  int i, hits = 0, outnow = 0;
+  saved_player *scan, **hash;
+  player dummy;
+
+  if ((!strcasecmp(st->type, "richest") ||
+       !strcasecmp(st->type, "trouble")) && !isdigit(*str))
+  {
+    tell_player(p, " For this search, you must supply a number\n");
+    return;
+  }
+
+  if (*str)
+    sprintf(mid, "Searching %s for '%s'", st->type, str);
+  else
+    sprintf(mid, "Output from %s", st->type);
+  pstack_mid(mid);
+  *stack++ = '\n';
+
+  if (!strcasecmp(st->type, "sstats"))
+    stack += sprintf(stack,
+	     "                      resd warn boot rm'd ject  main idle\n");
+  if (!strcasecmp(st->type, "trouble"))
+    stack += sprintf(stack,
+	  "                      warn ject boot idle  main idle git ban\n");
+
+  for (c = 'a'; (c <= 'z' && !outnow); c++)
+  {
+    hash = saved_hash[((int) (tolower(c)) - (int) 'a')];
+    for (i = 0; (i < HASH_SIZE && !outnow); i++, hash++)
+    {
+      for (scan = *hash; (scan && !outnow); scan = scan->next)
+      {
+	if (scan->residency == BANISHD ||
+	    scan->residency & SYSTEM_ROOM)
+	  continue;
+
+	if (hits > 99)
+	{
+	  stack += sprintf(stack, "\n   --- Too many hits, search terminated ---\n\n");
+	  outnow++;
+	  continue;
+	}
+	memset(&dummy, 0, sizeof(player));
+	strncpy(dummy.lower_name, scan->lower_name, MAX_NAME - 1);
+	dummy.fd = p->fd;
+	if (!load_player(&dummy))
+	{
+	  LOGF("error", "No player loaded for a saved player ! [%s]",
+	       scan->lower_name);
+	  TELLPLAYER(p, "No player loaded for a saved player [%s]",
+		     scan->lower_name);
+	  continue;
+	}
+	if ((got = (st->search_func) (&dummy, str)))
+	{
+	  hits++;
+	  strcpy(stack, got);
+	  stack = strchr(stack, 0);
+	}
+      }
+    }
+  }
+  if (!hits)
+  {
+    stack = oldstack;
+    TELLPLAYER(p, " No matches of '%s' found in %s search.\n",
+	       str, st->type);
+    return;
+  }
+  if (oldstack[strlen(oldstack) - 1] != '\n')
+    *stack++ = '\n';
+  *stack++ = '\n';
+
+  if (hits == 1)
+    sprintf(mid, "One %s match found", st->type);
+  else
+    sprintf(mid, "%d %s matches found", hits, st->type);
+  pstack_mid(mid);
+  *stack++ = 0;
+  pager(p, oldstack);
+  stack = oldstack;
+}
+
+void show_search_types(player * p)
+{
+  int i;
+  char *oldstack = stack;
+
+  pstack_mid("Areas you may search");
+  *stack++ = '\n';
+
+  for (i = 0; SearchTypes[i].type[0]; i++)
+    if (!SearchTypes[i].priv || p->residency & SearchTypes[i].priv)
+      stack += sprintf(stack, " %-20s %s\n", SearchTypes[i].type,
+		       SearchTypes[i].desc);
+
+  *stack++ = '\n';
+  ENDSTACK(LINE);
+  tell_player(p, oldstack);
+  stack = oldstack;
+}
+
+
+void master_search_command(player * p, char *str)
+{
+  int i;
+  char *query = "";
+
+
+  if (strcasecmp(str, "sstats") && !(query = strchr(str, ' ')))
+  {
+    tell_player(p, " Format: search <type> <query>\n");
+    show_search_types(p);
+    return;
+  }
+  if (*query)
+    *query++ = 0;
+
+  if (strlen(query) > 30)
+  {
+    tell_player(p, " Query too long, truncated\n");
+    query[30] = 0;
+  }
+  for (i = 0; SearchTypes[i].type[0]; i++)
+    if (!strncasecmp(SearchTypes[i].type, str, strlen(str)))
+    {
+      if (SearchTypes[i].priv && !(p->residency & SearchTypes[i].priv))
+	continue;
+
+      master_search(p, query, &SearchTypes[i]);
+      return;
+    }
+
+  TELLPLAYER(p, "Couldn't find '%s' to search ...\n", str);
+  show_search_types(p);
+}
+
+
+
+char *percentile(int top, int bot)
+{
+  static char ret[8];
+  float perc;
+
+  if (!bot || bot < 0)
+    return " ??%";
+
+  perc = ((float) top / (float) bot) * 100;
+  if (perc > 100)
+    strcpy(ret, "+100");
+  else if (perc == 100)
+    strcpy(ret, "100%");
+  else if (!perc)
+    strcpy(ret, "  0%");
+  else
+    sprintf(ret, "%3.0f%%", perc);
+
+  return ret;
+}
+
+
+char *name_search(player * p, char *str)
+{
+  static char clc[MAX_NAME + 5];
+
+  if (!strcasestr(p->lower_name, str))
+    return (char *) NULL;
+
+  memset(clc, 0, MAX_NAME + 5);
+
+  if (p->residency & (CODER | ADMIN | LOWER_ADMIN))
+    sprintf(clc, "^B%s^N, ", p->lower_name);
+  else if (p->residency & (PSU | SU | ASU | ADC))
+    sprintf(clc, "^G%s^N, ", p->lower_name);
+  else
+    sprintf(clc, "%s, ", p->lower_name);
+
+  return clc;
+}
+
+char *xref_search(player * p, char *str)
+{
+  static char clc[MAX_NAME + 5];
+
+  if (strncmp(p->lower_name, str, strlen(str)))
+    return (char *) NULL;
+
+  memset(clc, 0, MAX_NAME + 5);
+
+  if (p->residency & (CODER | ADMIN | LOWER_ADMIN))
+    sprintf(clc, "^B%s^N, ", p->lower_name);
+  else if (p->residency & (PSU | SU | ASU | ADC))
+    sprintf(clc, "^G%s^N, ", p->lower_name);
+  else
+    sprintf(clc, "%s, ", p->lower_name);
+  return clc;
+}
+
+char *email_search(player * p, char *str)
+{
+  static char clc[160];
+
+  if (!strcasestr(p->email, str))
+    return (char *) NULL;
+
+  memset(clc, 0, 160);
+
+  if (p->residency & (CODER | ADMIN | LOWER_ADMIN))
+    sprintf(clc, "  ^B%-20s  %s^N\n", p->lower_name, p->email);
+  else if (p->residency & (PSU | SU | ASU | ADC))
+    sprintf(clc, "  ^G%-20s  %s^N\n", p->lower_name, p->email);
+  else
+    sprintf(clc, "  %-20s  %s^N\n", p->lower_name, p->email);
+  return clc;
+}
+
+char *site_search(player * p, char *str)
+{
+  static char clc[160];
+
+  if (!p->saved || !strcasestr(p->saved->last_host, str))
+    return (char *) NULL;
+
+  memset(clc, 0, 160);
+  if (current_player && current_player->residency & (LOWER_ADMIN | ADMIN))
+    sprintf(clc, " %-20s %s <%s>\n", p->lower_name, p->saved->last_host,
+	    p->email);
+  else
+    sprintf(clc, " %-20s %s\n", p->lower_name, p->saved->last_host);
+  return clc;
+}
+
+
+char *url_search(player * p, char *str)
+{
+  static char clc[160];
+
+  if (!strcasestr(p->alt_email, str))
+    return (char *) NULL;
+
+  memset(clc, 0, 160);
+  sprintf(clc, " %-20s %s^N\n", p->lower_name, p->alt_email);
+  return clc;
+
+}
+
+char *richest_search(player * p, char *str)
+{
+  static char clc[160];
+
+  if (p->pennies < 10)
+    return (char *) NULL;
+
+  if (p->pennies < atoi(str))
+    return (char *) NULL;
+
+  memset(clc, 0, 160);
+  sprintf(clc, " %-20s %d %s\n", p->lower_name, p->pennies,
+	  get_config_msg("cash_name"));
+  return clc;
+
+}
+
+char *resby_search(player * p, char *str)
+{
+  static char clc[MAX_NAME + 5];
+
+  if (!p->ressied_by[0] || !strcasestr(p->ressied_by, str))
+    return (char *) NULL;
+
+  memset(clc, 0, MAX_NAME + 5);
+  if (p->residency & (CODER | ADMIN | LOWER_ADMIN))
+    sprintf(clc, "^B%s^N, ", p->lower_name);
+  else if (p->residency & (PSU | SU | ASU | ADC))
+    sprintf(clc, "^G%s^N, ", p->lower_name);
+  else
+    sprintf(clc, "%s, ", p->lower_name);
+  return clc;
+}
+
+char *staff_stats_search(player * p, char *str)
+{
+  static char clc[160];
+  char *ptr;
+
+  if (!(p->residency & (PSU | ADC)))
+    return (char *) NULL;
+
+  memset(clc, 0, 160);
+  ptr = clc;
+  ptr += sprintf(ptr, " %-20s %4d %4d %4d %4d %4d  %s", p->lower_name,
+		 p->num_ressied, p->num_warned, p->num_booted, p->num_rmd,
+	       p->num_ejected, percentile(p->time_in_main, p->total_login));
+  sprintf(ptr, " %s\n", percentile(p->total_idle_time, p->total_login));
+
+  return clc;
+}
+
+char *trouble_search(player * p, char *str)
+{
+  static char clc[160];
+  char *ptr;
+
+  if ((p->warn_count + p->eject_count + p->idled_out_count + p->booted_count)
+      <
+      atoi(str)
+      &&
+      !(p->git_string[0]))
+    return (char *) NULL;
+
+
+  memset(clc, 0, 160);
+  ptr = clc;
+  ptr += sprintf(ptr, " %-20s %4d %4d %4d %4d  %s", p->lower_name,
+		 p->warn_count, p->eject_count, p->booted_count,
+		 p->idled_out_count, percentile(p->time_in_main,
+						p->total_login));
+  sprintf(ptr, " %s  %c   %c\n",
+	  percentile(p->total_idle_time, p->total_login),
+	  (p->git_string[0] ? '*' : ' '),
+	  (p->residency & BANISHD ? '*' : ' '));
+
+  return clc;
+}
+
+
+
+char *git_search(player * p, char *str)
+{
+  static char clc[160];
+
+
+  if (!p->git_string[0])
+    return (char *) NULL;
+
+  if (!strcasestr(p->git_string, str) && !strcasestr(p->git_by, str))
+    return (char *) NULL;
+
+  memset(clc, 0, 160);
+  sprintf(clc, " %-20s (%s) %s^N\n", p->lower_name, p->git_by, p->git_string);
+  return clc;
+}
+
+char *swarn_search(player * p, char *str)
+{
+  static char clc[160];
+
+
+  if (!p->swarn_message[0])
+    return (char *) NULL;
+
+  if (!strcasestr(p->swarn_message, str) &&
+      !strcasestr(p->swarn_sender, str))
+    return (char *) NULL;
+
+  memset(clc, 0, 160);
+  sprintf(clc, " %-20s (%s) %s^N\n", p->lower_name, p->swarn_sender,
+	  p->swarn_message);
+  return clc;
+}
+
+void use_search(player * p, char *str)
+{
+  char squeal[160];
+
+  tell_player(p, " This command has depreciated, use the 'search' command.\n");
+  if (!*str)
+    return;
+
+  memset(squeal, 0, 160);
+
+  if (strlen(str) > 140)	/* make sure we cant overwrite the lil buffer */
+    str[140] = 0;
+
+  if (!strcasecmp(first_char(p), "xref"))
+  {
+    sprintf(squeal, "xref %s", str);
+    master_search_command(p, squeal);
+    return;
+  }
+  if (!strcasecmp(first_char(p), "etrace"))
+  {
+    sprintf(squeal, "emails %s", str);
+    master_search_command(p, squeal);
+    return;
+  }
+  sprintf(squeal, "sites %s", str);
+  master_search_command(p, squeal);
+  return;
 }

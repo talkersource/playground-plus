@@ -1,0 +1,6 @@
+MF_DATE="20.06.1998"
+MF_OS="Solaris"
+MF_AUTHOR="Unknown"
+MF_OS_CFLAGS="-DSOLARIS"
+MF_LIBS=""
+

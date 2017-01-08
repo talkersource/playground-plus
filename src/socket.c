@@ -6,6 +6,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -61,10 +62,12 @@ extern int select(int, fd_set *, fd_set *, fd_set *, struct timval *);
 
 /* Used to be after the #endif */
 
-#ifndef REDHAT5
+#ifdef NEED_BIND_DECL
 extern int bind(int, struct sockaddr *, int);
+#endif /* NEED_BIND_DECL */
+#ifdef NEED_LISTEN_DECL
 extern int listen(int, int);
-#endif
+#endif /* NEED_LISTEN_DECL */
 
 extern int write(int, char *, int);
 extern int read(int, char *, int);
@@ -143,7 +146,8 @@ int valid_char_col(char ctest)
   if (ctest == 'a' || ctest == 'b' || ctest == 'c' ||
       ctest == 'g' || ctest == 'h' || ctest == 'i' ||
       ctest == 'k' || ctest == 'p' || ctest == 'r' ||
-      ctest == 's' || ctest == 'u' || ctest == 'y')
+      ctest == 's' || ctest == 'u' || ctest == 'y' ||
+      ctest == 'x')
     return 1;
   return 0;
 }
@@ -151,11 +155,21 @@ int valid_char_col(char ctest)
 
 char *getcolor(player * p, char col)
 {
+  static char ret[16];
+  int rnd;
 
   if (p->misc_flags & NOCOLOR && !(p->misc_flags & SYSTEM_COLOR))
     return 0;
   switch (col)
   {
+    case 'X':
+      rnd = (rand() % 7) + 1;
+      sprintf(ret, "\033[1;3%dm", rnd);
+      return ret;
+    case 'x':
+      rnd = (rand() % 7) + 1;
+      sprintf(ret, "\033[0;3%dm", rnd);
+      return ret;
     case 'S':
     case 's':
       return "\033[3m";
@@ -558,11 +572,11 @@ void accept_new_connection(void)
 {
   struct sockaddr_in incoming;
   struct hostent *hp;
-#ifdef REDHAT5
-  unsigned int length;
-#else /* REDHAT5 */
+#ifdef HAVE_SOCKLEN_T
+  socklen_t length;
+#else
   int length;
-#endif /* !REDHAT5 */
+#endif /* HAVE_SOCKLEN_T */
   int new_socket;
   player *p;
   int dummy = 1, no1, no2, no3, no4;
@@ -763,6 +777,7 @@ void get_player_input(player * p)
   if (!chars_ready)
   {
     if (sys_flags & VERBOSE)
+    {
       if (p->lower_name[0])
       {
 	sprintf(oldstack, "%s went netdead.", p->name);
@@ -771,6 +786,7 @@ void get_player_input(player * p)
       }
       else
 	log("connection", "Connection went netdead on login.");
+    }
     quit(p, 0);
     stack = oldstack;
     return;
@@ -783,7 +799,7 @@ void get_player_input(player * p)
   for (; !(p->flags & PANIC) && chars_ready; chars_ready--)
     if (read(p->fd, &c, 1) != 1)
     {
-      log("connection", "Caught read error on socket.\n");
+      log("connection", "Caught read error on socket.");
       return;
     }
     else
@@ -831,7 +847,7 @@ void get_player_input(player * p)
 	    {
 	      if (write(p->fd, &c, 1) < 0 && errno != EINTR)
 	      {
-		log("error", "Echoing back to player.\n");
+		log("error", "Echoing back to player.");
 		quit(p, 0);
 		return;
 	      }
@@ -1378,7 +1394,7 @@ file process_output(player * p, char *str)
     strcpy(stack, terms[(p->term - 1)].bold);
     bold = 1;
   }
-  else if (p->misc_flags & SYSTEM_COLOR)
+  else if ((p->misc_flags & SYSTEM_COLOR) && (p->colorset[sys_color_atm] != 'N'))
   {
     strcpy(stack, getcolor(p, p->colorset[sys_color_atm]));
     col = 1;
@@ -1436,6 +1452,7 @@ file process_output(player * p, char *str)
 	 * a time.
 	 */
 	if (!*(str + 1))
+        {
 	  if (col)
 	  {
 	    strcpy(stack, getcolor(p, '^'));
@@ -1446,6 +1463,7 @@ file process_output(player * p, char *str)
 	    strcpy(stack, terms[(p->term - 1)].off);
 	    for (bold = 0; *stack; stack++);
 	  }
+        }
 	*stack++ = '\n';
 	*stack++ = '\r';
 	p->column = 0;
@@ -1534,9 +1552,9 @@ void tell_player(player * p, char *str)
     sprintf(stack, "scripts/%s", p->script_file);
     stack = end_string(stack);
     lscripto(script, output.where, output.length);
-    script = oldstack;
+    script = script;
   }
-  if (write(p->fd, output.where, output.length) < 0 && errno != EINTR)
+  if (!write_socket(&p->fd, output.where, output.length))
     quit(p, 0);
   out_current += output.length;
   out_pack_current++;
@@ -1574,7 +1592,7 @@ void non_block_tell(player * p, char *str)
     lscripto(script, output.where, output.length);
     stack = script;
   }
-  if (write(p->fd, output.where, output.length) < 0 && errno != EINTR)
+  if (!write_socket(&p->fd, output.where, output.length))
     quit(p, 0);
   out_current += output.length;
   out_pack_current++;
@@ -1841,3 +1859,41 @@ void do_ping(player * p, char *str)
   tell_player(p, oldstack);
   stack = oldstack;
 }
+
+/*
+   a new write_socket function to sort out nasty sigpipes
+   (thanks to jamesa for this)
+*/
+ 
+ssize_t write_socket(int *fd, const void *where, size_t length)
+{
+ ssize_t output_length = 0;
+    
+ assert(length);
+    
+  if (!length)
+    return (1);
+    
+ if (*fd != -1)
+ {
+   if ((output_length = write(*fd, where, length)) == -1)
+     switch (errno)
+     {
+    case EINTR: /* interupt occured */
+    case EAGAIN: /* too much data */
+    case ENOSPC: /* too much data */
+      return (output_length);
+
+    case EPIPE: /* sigpipe */
+    default:   
+      close(*fd);
+      *fd = -1;
+      return (0);
+     }
+   else
+     return (output_length);
+ }
+      
+ return (0);
+}
+

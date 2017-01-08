@@ -157,7 +157,7 @@ int build_loggedin_players_info(void)
 	    scan->location->id);
     strncpy(scan->location_string, location_string, MAX_NAME + MAX_ID - 1);
 
-    stack += sprintf(stack, "%s/%s", REBOOTING_DIR, scan->lower_name);
+    sprintf(stack, "%s/%s", REBOOTING_DIR, scan->lower_name);
     stack = end_string(stack);
     f = fopen(oldstack, "w");
     if (!f)
@@ -242,6 +242,7 @@ void do_reboot(void)
 
   sync_all();
   sync_notes(0);
+  sync_sitems(0);
 
 #ifdef IDENT
   kill_ident_server();
@@ -291,24 +292,57 @@ void do_reboot(void)
 void reboot_command(player * p, char *str)
 {
   player *scan;
+  char *oldstack = stack;
 
-  if (awaiting_reboot)
+  CHECK_DUTY(p);
+
+#ifdef AUTOSHUTDOWN
+  if (auto_sd)
+  {
+    tell_player(p, "\n Autoshutdown is active. Rebooting the talker may cause pfile corruption.\n"
+                   " You are advised to perform a proper shutdown to avoid problems.\n");
+    return;
+  }
+#endif /* AUTOSHUTDOWN */
+
+  if (!strcasecmp(str, "-f"))
+  {
+    tell_player(p, " Forcing reboot ...\n");
+    LOGF("reboot", "%s forces a reboot ...", p->name);
+    do_reboot();
+  }
+
+  if (awaiting_reboot && strcasecmp(str, "-g"))
   {
     tell_player(p, " Already awaiting opportunity to reboot ...\n");
     return;
   }
 
   for (scan = flatlist_start; scan; scan = scan->flat_next)
-    if (scan->location && (scan->misc_flags & IN_EDITOR || scan->mode & (MAILEDIT | ROOMEDIT | NEWSEDIT)))
+    if (scan->location && (scan->flags & IN_EDITOR || scan->mode & (MAILEDIT | ROOMEDIT | NEWSEDIT)))
+    {
       awaiting_reboot = 1;
+      stack += sprintf(stack, "%s  ", scan->name);
+    }
 
   if (!awaiting_reboot)
+  {
+    LOGF("reboot", "%s calls for a reboot ... and gets it.", p->name);
     do_reboot();
+  }
+  stack = end_string(stack);
 
-  tell_player(p, " Someone is currently in the editor (or in a mode). The code will reboot when\n"
-	      " they have finished ...\n");
+  TELLPLAYER(p,
+	     " Someone is currently in the editor (or in a mode).\n"
+	     " The code will reboot when they have finished ...\n"
+	     " (ppl holding up the show are: %s)\n", oldstack);
+
+  stack = oldstack;
+
   SW_BUT(p, " -=*> %s requests a reboot of %s\n",
 	 p->name, get_config_msg("talker_name"));
+  LOGF("reboot", "%s calls for a reboot ... but has to wait.", p->name);
+
 }
 
 
@@ -474,7 +508,7 @@ void reattach_player(player * info)
 
   trans_to_quiet(p, p->location_string);
   if (!(p->location))
-    trans_to_quiet(p, ENTRANCE_ROOM);
+    trans_to_quiet(p, sys_room_id(ENTRANCE_ROOM));
 
   if (p->saved)
   {
@@ -502,14 +536,14 @@ void retrieve_players(void)
   f = fopen(PLAYER_LIST_FILE, "r");
   if (!f)
   {
-    log("error", "When rebooting, in retrieve_players, fopen failed.\n");
+    log("error", "When rebooting, in retrieve_players, fopen failed.");
     return;
   }
   memset(namein, 0, 160);
   ret = fscanf(f, "%s", namein);
   while (ret && ret != EOF)
   {
-    stack += sprintf(stack, "%s/%s", REBOOTING_DIR, namein);
+    sprintf(stack, "%s/%s", REBOOTING_DIR, namein);
     stack = end_string(stack);
     pf = fopen(oldstack, "r");
     stack = oldstack;

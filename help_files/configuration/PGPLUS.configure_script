@@ -1,0 +1,72 @@
+
+ Playground+ configure script
+ ----------------------------
+
+  In order to avoid 100 questions about the new configure script this file
+contains all the information you should need. Its fairly technical.
+
+** NOTE: This script is distributed for and ONLY for the Playground Plus
+** package. It may not be used in any other distribution without the prior
+** permission of the author. No reply to your request does NOT constitute
+** permission.
+
+  The script that configures the talker is located in configure/setup. It
+reads the OS from the "uname" command and after turning any slashes to
+dashes attempts to find that file in configure/makefiles.
+
+  This file contains a number of variables to define that system. If one
+cannot be found the they are all listed and the user needs to pick the
+right one.
+
+  Then all #includes are extracted from the .c files, preprocessed with
+gcc -E and then grepped to determine whether certain externs or defines
+are required. Also a small program using crypt is compiled and the error
+message checked to determine whether lcrypt is needed.
+
+  Then the template for all makefiles in configure/Makefile.template is
+used and the relevant variables are placed in the appropriate position.
+
+
+  Porting
+  -------
+
+  Porting should be a doddle. Simply modify the code, including the
+relevant defines and create a file in configure/makefiles with the same
+name as whatever "uname" returns (remembering that any /'s should be
+turned into _'s). An example file would be:
+
+MF_DATE="<insert date>"
+MF_OS="<insert your OS>"
+MF_AUTHOR="<insert your name>"
+MF_OS_CFLAGS="<insert the defines required for that OS>"
+MF_LIBS="<insert the libs required for that OS>"
+
+Note that you do not need to define -DNDEBUG or -lcrypt as these are added
+automatically.
+
+  From then on, the setup script will recognise the uname and find the
+correct file and correctly install the desired makefile.
+
+  Objects
+  -------
+
+  How the objects working out works is quite simple. All .c file are
+listed minus any files in configure/object_exclusions (explained later)
+and minus any files which contain a main function. The files are looked
+through and any that do:
+
+#include "something.c"
+
+have that .c file removed from the list. What is left is the objects
+required for the talker. To add a new file simply drop it into the src dir
+and run "make depend" and it will be added to the .Makefile-objects file
+as well as the dependances calculated for that file.
+
+Sometimes a file doesn't contain a main but should not be compiled as part
+of the talker. The list of these files are contained in
+configure/object_exclusions.
+
+		Richard Lawrence (aka Silver)
+		26 September 1999
+
+

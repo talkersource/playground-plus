@@ -10,6 +10,7 @@
  *  changed pager calls to be pg+ conformant
  *  cleaned up presentation (used LINE and pstack_mid)
  *  added number of times read to "news check"
+ *  added   news next  command to read next unread article
  */
 
 
@@ -334,12 +335,12 @@ void scan_news(void)
     }
     for (scan = NewsGroups[i].top; (d < 5 && scan); scan = scan->next)
     {
-      if (scan->next && ((t - (scan->next->date)) > NEWS_TIMEOUT) &&
-	  !(scan->next->flags & STICKY_ARTICLE))
+      if (((t - (scan->date)) > NEWS_TIMEOUT) &&
+          !(scan->flags & STICKY_ARTICLE))
       {
-	LOGF("news", "Timeout of %s %s posting, %s", scan->next->name,
-	     NewsGroups[i].name, scan->next->header);
-	scan->next->flags |= DELETE_ME;
+        LOGF("news", "Timeout of %s %s posting, %s", scan->name,
+             NewsGroups[i].name, scan->header);
+        scan->flags |= DELETE_ME;
       }
 
 
@@ -531,6 +532,24 @@ char *read_count_string(int i)
   return s;
 }
 
+int next_unread(player * p, newsgroup * g)
+{
+  news_header *nh = g->top;
+  int i = 0, gn = find_news_group_number(g);
+
+  if (gn < 0)
+    return 0;
+
+  while (nh && nh->date > p->news_last[gn])
+  {
+    nh = nh->next;
+    i++;
+  }
+  return i;
+}
+
+
+
 void save_str_public(char *filename, char *str)
 {
   int fd;
@@ -638,6 +657,7 @@ void end_news_posting(player * p)
 
   nh = (news_header *) p->edit_info->misc;
 
+  nh->id = get_next_news_id(nh->group);
   nh->date = time(0);
 
   /* add it to the linked news list */
@@ -666,7 +686,7 @@ void end_news_posting(player * p)
   else
     stack += sprintf(stack, " by %s", p->name);
 
-  stack += sprintf(stack, " entitled ...\n      %s\n", nh->header);
+  stack += sprintf(stack, " entitled ...\n      %s^N\n", nh->header);
 
   stack = end_string(oldstack);
   news_wall_priv_but(p, oldstack, nh->group->required_priv);
@@ -702,11 +722,9 @@ void end_news_posting(player * p)
 
 void news_command(player * p, char *str)
 {
-
-
   if (p->edit_info)
   {
-    tell_player(p, " Can't do news commands whilst in the editor.\n");
+    tell_player(p, " Can't do news commands whilst in the editor or pager.\n");
     return;
   }
   if ((*str == '/') && (p->input_to_fn == news_command))
@@ -852,7 +870,6 @@ void post_news(player * p, char *str)
   strncpy(nh->header, str, MAX_TITLE - 1);
 
   nh->flags |= NEWS_ARTICLE;
-  nh->id = get_next_news_id(group);
   nh->read_count = 0;
   nh->group = group;
 
@@ -864,7 +881,7 @@ void post_news(player * p, char *str)
   tell_player(p, " Now enter the body for the article.\n");
   *stack = 0;
   start_edit(p, MAX_ARTICLE_SIZE, end_news_posting,
-	     quit_news_posting, stack);
+	     quit_news_posting, stack, 1);
 
   if (p->edit_info)
     p->edit_info->misc = (void *) nh;
@@ -948,6 +965,7 @@ void followup(player * p, char *str)
     return;
   }
 
+  body[strlen(body)] = 0;
 
   nh = (news_header *) MALLOC(sizeof(news_header));
   if (!nh)
@@ -962,7 +980,6 @@ void followup(player * p, char *str)
   strncpy(nh->name, p->name, MAX_NAME - 1);
 
   nh->flags |= NEWS_ARTICLE;
-  nh->id = get_next_news_id(group);
   nh->read_count = 0;
   nh->group = group;
   nh->followups = scan->followups + 1;
@@ -1010,7 +1027,7 @@ void followup(player * p, char *str)
 
   tell_player(p, " Please trim article as much as possible ...\n");
   start_edit(p, MAX_ARTICLE_SIZE, end_news_posting,
-	     quit_news_posting, newbody);
+	     quit_news_posting, newbody, 1);
   if (p->edit_info)
     p->edit_info->misc = (void *) nh;
   else
@@ -1098,7 +1115,7 @@ void list_news(player * p, char *str)
 
   for (count = 0; ((count < (TERM_LINES - 1)) && scan); count++, ncount++)
   {
-    stack += sprintf(stack, "%s [%d] %s%s%s%s %s\n", id_or_not(p, scan),
+    stack += sprintf(stack, "%s [%d] %s%s%s%s^N %s\n", id_or_not(p, scan),
 	      ncount, read_count_string(scan->read_count), spaces10(ncount),
 		 spaces_followups(scan), scan->header, sender_str(p, scan));
 
@@ -1214,7 +1231,7 @@ void read_article(player * p, char *str)
   else				/* just a line */
     stack += sprintf(stack, LINE);
 
-  stack += sprintf(stack, "    Subject: %s\n", scan->header);
+  stack += sprintf(stack, "    Subject: %s^N\n", scan->header);
 
   if (scan->flags & ANONYMOUS)
   {
@@ -1358,9 +1375,12 @@ void news_setsticky_command(player * p, char *str)
     TELLPLAYER(p, " No such news posting '%d'\n", which);
     return;
   }
-  nh->flags |= STICKY_ARTICLE;
+  nh->flags ^= STICKY_ARTICLE;
 
-  tell_player(p, " Sticky bit set ...\n");
+  if (nh->flags & STICKY_ARTICLE)
+    tell_player(p, " Sticky bit set ...\n");
+  else
+    tell_player(p, " Sticky bit removed ...\n");
 }
 
 
@@ -1530,6 +1550,62 @@ void sus_news_read(player * p, char *str)
   stack = oldstack;
 }
 
+ /* and for admin ... */
+
+void ad_news_post(player * p, char *str)
+{
+  char *oldstack = stack;
+
+  if (!*str)
+  {
+    tell_player(p, " Format : adpost <subject>\n");
+    return;
+  }
+  sprintf(stack, "admin %s", str);
+  stack = end_string(stack);
+
+  post_news(p, oldstack);
+  stack = oldstack;
+}
+
+void ad_news_list(player * p, char *str)
+{
+  char *oldstack = stack;
+
+  if (!*str)
+  {
+    sprintf(stack, "admin");
+    stack = end_string(stack);
+    list_news(p, oldstack);
+    stack = oldstack;
+    return;
+  }
+  sprintf(stack, "admin %s", str);
+  stack = end_string(stack);
+
+  list_news(p, oldstack);
+  stack = oldstack;
+}
+
+void ad_news_read(player * p, char *str)
+{
+  char *oldstack = stack;
+
+  if (!*str)
+  {
+    tell_player(p, " Format : adread #\n");
+    return;
+  }
+  sprintf(stack, "admin %s", str);
+  stack = end_string(stack);
+
+  read_article(p, oldstack);
+  stack = oldstack;
+}
+
+
+
+
 void news_stats(player * p, char *str)
 {
   char *oldstack = stack;
@@ -1557,6 +1633,38 @@ void news_stats(player * p, char *str)
   pager(p, oldstack);
   stack = oldstack;
 
+}
+
+void news_read_next(player * p, char *str)
+{
+  newsgroup *ng;
+  int n;
+  char poppy[16];
+
+  if (*str)
+  {
+    ng = find_news_group(str);
+    if (!ng)
+    {
+      TELLPLAYER(p, " No such news group '%s' ...\n", str);
+      return;
+    }
+  }
+  else
+    ng = &NewsGroups[0];
+
+  n = next_unread(p, ng);
+
+  if (!n)
+  {
+    if (ng == &NewsGroups[0])
+      tell_player(p, " No more unread articles.\n");
+    else
+      TELLPLAYER(p, " No more unread articles in '%s' group.\n", str);
+    return;
+  }
+  sprintf(poppy, "%d", n);
+  read_article(p, poppy);
 }
 
 

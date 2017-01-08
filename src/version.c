@@ -7,11 +7,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "include/config.h"
 #include "include/player.h"
 #include "include/proto.h"
 #include "include/version.h"
+
+struct hardware_info
+{
+  int allgood;
+  int processors;
+  int ram;
+  float bogomips;
+  char cpu[40];
+  char model[40];
+  char vendor[40];
+}
+CPU;
 
 /* --------------------------------------------------------------------------
 
@@ -26,7 +39,14 @@
 void pg_version(player * p, char *str)
 {
   char *oldstack = stack;
-  int ot;
+  int ot = 0;
+
+  if (!strcmp(str, "-"))
+  {
+    TELLPLAYER(p, "\n %s is running Playground Plus v%s\n"
+	       " (compilation date: %s)\n", get_config_msg("talker_name"), PG_VERSION, COMPILE_TIME);
+    return;
+  }
 
   pstack_mid("Playground+ Version Information");
 
@@ -40,11 +60,7 @@ void pg_version(player * p, char *str)
   stack = strchr(stack, 0);
 
 #ifdef LINUX
-#ifdef REDHAT5
-  sprintf(stack, " -=*> Playground+ running on Linux (glibc2).\n");
-#else
-  sprintf(stack, " -=*> Playground+ running on Linux (glibc1).\n");
-#endif
+  sprintf(stack, " -=*> Playground+ running on Linux.\n");
 #elif SOLARIS
   sprintf(stack, " -=*> Playground+ running on Solaris.\n");
 #elif SUNOS
@@ -53,6 +69,8 @@ void pg_version(player * p, char *str)
   sprintf(stack, " -=*> Playground+ running on HP-UX.\n");
 #elif ULTRIX
   sprintf(stack, " -=*> Playground+ running on Ultrix.\n");
+#elif BSD3
+  sprintf(stack, " -=*> Playground+ running on BSDI.\n");
 #elif BSDISH
   sprintf(stack, " -=*> Playground+ running on *BSD.\n");
 #else
@@ -82,7 +100,7 @@ void pg_version(player * p, char *str)
   robot_version();
 #endif
 
-  sprintf(stack, " -=*> Auto reloading v1.0 (by phypor) enabled.\n");
+  sprintf(stack, " -=*> Auto reloading v1.0 (by phypor) installed.\n");
   stack = strchr(stack, 0);
 
 
@@ -133,11 +151,20 @@ void pg_version(player * p, char *str)
   if (config_flags & cfNOSWEAR)
     swear_version();
 
+  stack += sprintf(stack, " -=*> ESE, expandable search engine v1.3 (by phypor) installed.\n");
+
 #ifdef ALLOW_MULTIS
   multis_version();
 #endif
 
   softmsg_version();
+ 
+#ifdef INTERCOM
+  ichan_version();
+#endif
+
+/* EWE */
+  ewe_version();
 
 /* A warning that people are using debugging mode. This means sysops can
    slap silly people who use this mode in live usage -- Silver */
@@ -225,9 +252,81 @@ void netstat(player * p, char *str)
       stack += sprintf(stack, ", ");
     stack += sprintf(stack, "unknown guardian angel PID");
   }
+  stack += sprintf(stack, "\n");
+  stack += sprintf(stack, "Machine `uname`    : %s\n", UNAME);
 
-  stack += sprintf(stack, "\n%s", LINE);
+  if (CPU.allgood)
+    stack += sprintf(stack, "CPU Stats          : %s %s %s %s Processor%s %dM RAM\n"
+		     "Bogomips           : %.2f\n" LINE,
+	      number2string(CPU.processors), CPU.vendor, CPU.cpu, CPU.model,
+		     (CPU.processors > 1) ? "s" : "", CPU.ram, CPU.bogomips);
+  else
+    stack += sprintf(stack, "CPU Stats          : Unavailable\n" LINE);
+
   stack = end_string(stack);
   tell_player(p, oldstack);
   stack = oldstack;
+}
+
+/* 
+   the idea for this was taken from linux_logo, 
+   however the codes been totally rewritten
+   ~phy
+
+   (only claimed to work on linux boxen)
+ */
+
+void get_hardware_info(void)
+{
+  FILE *f;
+  char red[40], dummy[40];
+  float bmc;
+  struct stat sbuf;
+
+  if (!(f = fopen("/proc/cpuinfo", "r")))
+  {
+    CPU.allgood = 0;
+    return;
+  }
+  while (fgets(red, 39, f))
+  {
+    if (!(strncasecmp(red, "bogomips", 8)))
+    {
+      CPU.processors++;
+      sscanf(red, "%s : %f", dummy, &bmc);
+      CPU.bogomips += bmc;
+      continue;
+    }
+    if (CPU.processors)
+      continue;
+
+    if (!(strncasecmp(red, "cpu", 3)) && !strstr(red, "cpuid"))
+    {
+      sscanf(red, "%s : %s", dummy, CPU.cpu);
+      continue;
+    }
+    if (!(strncasecmp(red, "model", 5)))
+    {
+      sscanf(red, "%s : %s", dummy, CPU.model);
+      continue;
+    }
+    if (!(strncasecmp(red, "vendor_id", 9)))
+    {
+      sscanf(red, "%s : %s", dummy, CPU.vendor);
+      if (!strcasecmp(CPU.vendor, "AuthenticAMD"))
+	strcpy(CPU.vendor, "AMD");
+      else if (!strcasecmp(CPU.vendor, "GenuineIntel"))
+	strcpy(CPU.vendor, "Intel");
+      else if (!strcasecmp(CPU.vendor, "CyrixInstead"))
+	strcpy(CPU.vendor, "Cyrix");
+      continue;
+    }
+  }
+  fclose(f);
+
+  stat("/proc/kcore", &sbuf);
+  CPU.ram = sbuf.st_size / 1024;
+  CPU.ram /= 1024;
+
+  CPU.allgood++;
 }

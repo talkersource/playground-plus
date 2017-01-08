@@ -1,0 +1,6 @@
+MF_DATE="20.06.1998"
+MF_OS="SunOS"
+MF_AUTHOR="Unknown"
+MF_OS_CFLAGS="-DSUNOS"
+MF_LIBS=""
+

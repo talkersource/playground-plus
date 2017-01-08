@@ -82,9 +82,63 @@ Via the room command, or whilst in room mode:
                               The Editor
                               ----------
 
-      Lines not starting with / or . are inserted into the text.
+  When you write a news posting, a mail message, or a room description, you
+will be placed into edit mode.  Whilst in this mode, everything you type
+will be entered into the editor (using your current paragraph style - see
+help .para), with these exceptions:
 
-  .del <x>      - delete the current line (or x lines)
+                   .<command> - use an editor command
+                   /<command> - use a normal command
+
+  When viewing what you have written (.view, .l), moving around the editor
+(.bot, .top, .-, .+, .g), or replacing (.replace) and inserting text, you
+will be shown the current line, along with its line number to the left.  The
+star inbetween number and text shows that this is the current line - which
+is useful when viewing the entire text, or if you have padding (.pad) turned
+on.  
+
+  Please also see the help pages for specific commands, and also these help
+pages:  ranges, editor-commands, output
+
+:output
+
+  When you are shown text while in the editor, you will see the line numbers
+alongside all viewed lines.  These are useful for moving around the buffer,
+and for performing operaions such as moving blocks of text.  When you move
+in the editor, you will be shown the current line.  If you have padding
+turned on (lets say .. 2 lines), you will also be shown 2 lines above and
+below the current line, with a star by the line you're actually at.
+
+  If you activate pretty text, this means a newline will be printed before
+any editor lines, to aid visibility.  You can have this nicer formatting
+turned off (by setting pad and pretty off), or use the .format command to
+give even line entry a padded/tidied appearance.
+
+  When you enter a long line, and are seeing formatted output all the time,
+the current line will have a * by it as normal, but the other lines that
+were added in the operation will have - signs between the number and text.
+
+:ranges,range
+
+  Some commands in the EWe system can be used on more than 1 line at a time,
+using ranges.  Ranges take 3 forms:
+
+  1) A single value (2 for example)
+  2) A single range (3-6 for example, meaning lines 3,4,5 and 6)
+  3) A multiple range (3-6,9,13-14 for example, being lines 3,4,5,6,9,13,14)
+
+  Multiple ranges take commas between ranges/values, and dashes between the
+two numbers of a range.  If you specify a line more than once, the extra
+mentions will be ignored (3-6,5 still means 3,4,5,6).  Please note than
+ranges must always go from first to last, 6-2 for example is invalid!
+
+:editor-commands
+
+  Please see the specific help pages on each command for a full description.
+
+  Old familiars from the normal talker editor:
+  
+  .del		- delete some lines
   .-            - go back a line
   .+            - go forward a line
   .view         - see what you've written
@@ -97,17 +151,18 @@ Via the room command, or whilst in room mode:
   .quiet        - toggle whether you go into 'quiet' mode when editing 
   .end          - quit the editor and KEEP the changes
   .quit         - quit the editor and THROW AWAY any changes
-  .s <string>   - finds the next global occurrence of the string
-  .sr <s> <r>   - Search and replace all occurrences of <s> with <r> eg:
 
+  New EWe commands:
 
-	Marry had a Yello cat!
-	.sr "Marry" "Mary"
-	changes Marry to Mary
-	The quotes allow you to replace spaces and stuff too.
-	i.e.   .sr "Yello cat!" "little lamb,"
-	now the line reads:  Mary had a little lamb,
-
+  .move		- move some lines
+  .replace	- replace some lines
+  .trunc	- control the auto-truncation feature
+  .pretty	- toggle whether you get newline seperated output
+  .insert	- toggle whether you insert before or after current line
+  .para		- toggle the paragraph mode
+  .format	- toggle when special formatting appears
+  .s		- search for some text
+  .n		- repeat last search (next match)
 
 :12,pager,page
 
@@ -958,6 +1013,79 @@ Note: * The new command levels are NOT saved by the program. When you
         you can make it inaccessible to a majority of people so as to
         prevent the code crashing again.
 
+:check_info,check-info
+
+CHECK_INFO  - Displays a general summary of a player's overall
+              character file.
+
+Notes: * The first line shows the "lsr" profile for that character.
+
+         This is followed by the character's name and title, email
+         address, spodtitle, hitells status, and flags list.
+
+         After the flags list, the character's maximum number of rooms,
+         exits, automessages, list size, aliases, mails, items, and
+         the width of their terminal and text-wrap settings.
+
+See also: checkflags
+
+:checkflags
+
+The following are flaglists for the "check info <character>" command.
+
+System Flags
+!D$LdJmM--fnemMmLAIiDsbT--------
+0   Saved NoShout   10   Flirt_Bachelor    18   Compressed_Items
+1   Saved Frogged   11   Bachelor_Hide     19   IAC_GA On
+2   Save_No_Sing    12   Engaged           20   Agreed_Disclaimer
+3   Save_Lagged     13   Married           21   New_Site
+4   Decapped        14   Old_Minister      22   Old_Builder
+5   Saved_Jail      15   New_Mail          23   TimePrompt
+6   No_Msgs         16   Compressed_List
+7   Saved_Rm_Move   17   Compressed_Alias
+
+Tag Flags
+>-!]+e#iD-!>*+dm$c=B#?pILBM-----
+0   Tag_Personal    10   Block_Shout            19   No_Beeps
+1   Tag_Room        11   Block_Tells            20   Block_Autos
+2   Tag_Shout       12   Block_Friends          21   No_Anon_Mail
+3   Tag_Logins      13   Block_Echos            22   No_Propose
+4   Tag_Echo        14   Block_Room_Desc        23   Block_Items
+5   Seeecho         15   Block_Friend_Mail      24   Block_Logins
+6   Tag_Autos       16   Sing_Block             25   Block_Bops
+7   Tag_Items       17   Block_Chans            26   Block_Multis
+8   Tag_Dynatext    18   No_Friendchan_Access
+
+Custom Flags
+hESes-----gmnpeSPrfxCqCDN-------
+0   Hiding          12   News_Inform            20   Converse_Mode
+1   Private_Email   13   No_Prefix              21   Quiet_Edit
+2   Public_Site     14   No_EPrefix             22   No_Clock
+3   Friend_Site     15   Yes_Session            23   No_Dynatext
+4   Friend_Email    16   No_Pager               24   No_New_News_Inform
+                    17   Room_Entermsgs
+10   Trans_To_Home  18   Yes_friendinform_login
+11   Mail_Inform    19   Show_Exits
+
+Misc Flags
+PG--------csCSgBMSdi------------
+0   No_PRS   11   Su_Hi        15   Stop_Bad_Color  19   No_Intercom_Channel
+1   No_Gift  12   No_Color     16   No_Main_Channel
+             13   System_Color 17   No_Spod_Channel
+10  Chan_Hi  14   Game_Hi      18   See_Debug_Channel
+
+Player Flags
+-RNREP-PTLCEiSDRUbsWAFSo--wre---
+1   Input_Ready      10   Chuckout            19   No_SU_Wall
+2   Last_Char_N      11   EOR_On              20   Assisted
+3   Last_Char_R      12   IAC_GA_Do           21   Frogged
+4   Do_Local_Echo    13   Site_Log            22   Scripting
+5   Password_Mode    14   Don't_Check_Pipe    23   Off_LSU
+                     15   Reconnection
+7   Prompt           16   No_Update_Last      26   Waiting_Engage
+8   Tagged           17   Block_SU            27   Robot
+9   Login            18   No_Save_Last_On     28   In_Editor
+
 :chlim
 
 CHLIM <limit type> <player> <new limit>  - change player limits.
@@ -1122,8 +1250,7 @@ marijuana, heroin, PCP, LSD, as well as many others.  Discussion of
 these items, even mentioning them, in any tell, say, shout, sing, mail, 
 news, or any other sort of communication at all is completely illegal 
 on the talker.  The continued existence of the talker comes 
-before your "right" to free speech (incidentally, if you haven't yet 
-read it, read "help first").
+before your "right" to free speech.
 
 The following are technically drugs, but are not illegal to 
 discuss, because their possession, use, purchase and selling are not
@@ -1607,12 +1734,12 @@ HOMEVIEW  - lets you see who's in a room you own.
 
 This is also aliased to MINDSEYE.
 
-:hw,hu,he,hs,ht
+:hw,hu,he,hs,ht,hd
 
 HCAdmin Channel
 ---------------
 
-  HU <message>  - Say on the HCAdmin channel
+  HU <message>  - Say on the HCAdmin channel (or HD)
   HE <action>   - Emote on the HCAdmin channel
   HS <song>     - Sing on the HCAdmin channel
   HT <thought>  - Think on the HCAdmin channel
@@ -1944,39 +2071,22 @@ LSR <x>  - lists all residents who's name begins with the letter <x> and
 
 This is aliased to "list_res"
 
-The permissions are these
+                     
+                          script
+                         house |                1  PSU
+             echo       spod | |  protect       2  SU
+           base |list  git | | | warn |         3  ASU
+               \| |      | | | |    | |         4  ADC
+        NBSR   bemlrs    GXOKHMSB   WFPT        5  LOWER_ADMIN
+       / |||     | ||     | | | |    | |        6  ADMIN
+ nosync  |||   mail||     | | | | frog |        7  CODER
+  banished||   rooms|     | | | |   trace       8  HCADMIN
+   sys_room|  session     | | | |
+       robot      notimeout | | |
+                      creator | |
+                       minister |
+                          builder
 
-1     Base        
-2     No sync      (will not be saved)  
-3     Echo
-4     No timeout   (will never be deleted for not logging in enough)
-5     banished     
-6     system room
-7     mail         (can send mail and news)
-8     list         (can have a list)
-9     build        (can have rooms)
-0     session      (can set sessions)
-1     spod         (appears on lsp as a spod)
-2     forest_chan  (uses s' s: s~ on the su channel)
-3     regular_chan (uses su se st on the su channel)
-4     (unused)
-5     psu          can see the su channel
-6     warn         can give official warnings
-7     (unused)      
-8     house        just a silly useless priv admins have (does nothing really)
-9     full_su      is a full superuser
-0     (unused)
-1     dumb         can turn people into morons (like they aren't already)
-2     (unused)
-3     script       can script stuff
-4     coder        can program the hell outta the place
-5     builder      can build objects to be bought
-6     lower admin  
-7     hc admin
-8     protected    (no su can do anything to a protected resident)
-9     tsu          (su in training)
-0     admin       
-1     git          Whether a resident has a git comment or not
 
 :lst
 
@@ -2113,6 +2223,8 @@ NEWBIES [on/off] - allow / forbid newbies from logging in.
 
 Note: * Typing "newbies" with no arguments tells you what the current
         status is.
+
+So also: screen
 
 :no_propose, no_proposals
 
@@ -2262,11 +2374,11 @@ Playground+ (PG+) is a stable, bug free and improved version of Playground
 written by Richard Lawrence (aka Silver), J. Bradley Christian (aka
 phypor) and Geoffrey Swift (aka blimey) in 1998.
 
-You can always download the latest version (thanks to John Whiting) from
+You can always download the latest version from
 
     http://pgplus.ewtoo.org
 
-All bug reports or queries should be directed to <pgplus@pgplus.ewtoo.org>
+All bug reports or queries should be directed to <pgplus@ewtoo.org>
 
 Below is a list of features that have been added to Playground Plus that
 were not previously seen in Playground 96. Note that below only lists
@@ -2685,6 +2797,10 @@ RM_MOVE <player> <minutes>  - Stops a person moving for an amount of time
 Note: * Setting <minutes> to -1 will prevent them moving perminantly
       * Setting <minutes> to 0 will allow them to move again
 
+:rm_multi
+
+RM_MULTI <multi number>  - Remove yourself from a multi/chain you are on
+
 :rm_sing,rm_shout
 
 RM_SING <player> <time>   } take away someone's right to shout or sing for 
@@ -3017,8 +3133,8 @@ Silver is the spodding name that Richard Lawrence (the author of PG+) goes
 under. If you see a Silver who isn't from the UK and didn't go to the
 University of Liverpool then it isn't him.
 
-URL   : http://www.whiting.co.uk/~rich
-EMAIL : silver@whiting.co.uk (or) rich@whiting.co.uk
+URL   : http://www.ewtoo.org/~silver
+EMAIL : silver@ewtoo.org 
 
 :sing,)
 
@@ -3496,7 +3612,7 @@ VERSION   - shows some info about the program, modules enabled, the last
             time updated, etc.
 
 Note: * If this command is unavailable to you then the admin of
-        &t are breaking the license agreement for this
+        &t are breaking the licence agreement for this
         talker base code.
 
 :view_flags
@@ -3825,13 +3941,17 @@ social is used:
 You can also have random words or phrases incorporated in your socials
 like so:
 
-%{option1|option2|option3|option4}
+{option1|option2|option3|option4}
 
 You can have as any options as you like and when parses only one of these
 options will be shown. An example could be:
 
-setsoc room_msg %{runs|skips|hops|leaps} over to %t_name and
-%{hits|throws|punches} %himher in the %{face|teeth|eyes|head}.
+setsoc room_msg {runs|skips|hops|leaps} over to %t_name and
+{hits|throws|punches} %himher in the {face|teeth|eyes|head}.
+
+Note, you do Not need a % in front of the opening brace {
+and putting one there will only get interpreted as a literal %
+  (meaning, itll put a % there as normal)
 
 Don't forget you can also incorporate dynatext for some really impressive
 socials!
@@ -3870,18 +3990,19 @@ Afterwards you can append any of the additional characters:
   l    - The time lagged, in seconds
   L    - Textual description of lag time, as shown in 'x'
 
-Some dynatext strings work without a prefix too:
-
-  &&m   - Will report name of the person seeing the message
-  &&r   - Will report the rank of the person seeing the message
-  &&c   - Will report the current persons name that the code is processing
+If you don't add a an arrow and a letter to the end then it will assume
+you want '->n' (the name)
 
 And these don't require a prefix at all:
 
-  &&t   - The name of the talker
-  &&T   - The address and port of the talker
-  &&e   - The email address of the admins
-  &&j   - The current slots jackpot
+  &&t   - The name of the talker (&t)
+  &&T   - The address and port of the talker (&T)
+  &&e   - The email address of the admins (&e)
+  &&j   - The current slots jackpot (&j)
+  &&p   - The number of players online (&p)
+  &&s   - The number of staff online (&s)
+  &&P   - The total number of players (&P)
+  &&S   - The total number of staff (&S)
 
 If you wish to ignore dynatext then use the MUFFLE command. If you wish to
 see all dynatext but know that it is dynatext then you can use the "SHOW
@@ -3990,9 +4111,155 @@ Notes: * When killed the talker will not reboot the next time is it
        * Once the angel is killed it cannot be rebooted again unless the
          talker is down as well!
 
+:kill_multi
+
+KILL_MULTI <multi number>  - Remove a multi entirely from existance
+
 :load_socials,syncsocials
 
 LOAD_SOCIALS  - Load the socials from the account into the talker.
 SYNCSOCIALS   - Saves all socials to disk
 
+:screen,allow,deny,squeue
 
+SCREEN [on/off]
+     used by itself, it will report if the talker is screening newbies or not
+     used with on or off, it will turn screening on or off
+
+ALLOW <name>
+     allow the newbie <name> to enter the talker
+
+DENY <name>
+     deny the entry of <name> to the talker
+
+SQUEUE
+     view those in the screening queue, and how much time theyve left
+
+
+    If screening is on, any newbie attempting will be held up as soon as
+  they enter their name, at which point the staff on duty will see a
+  message informing the newbie is trying to connect, the site they are
+  coming in from, and how to let them in or not.   At this time, any
+  staff member may   allow <name>   to let the newbie continue to enter
+  the program as normal, or   deny <name>   to disallow access.  If a 
+  newbie is denied, they will see the 'no newbies at this time' message.
+  There is also a timeout period, if no staff member allows or denies
+  access before this period is out, the newbie is denied access and
+  shown the message.   Finally, when screening is turned on and there
+  are no staff members on the talker and on duty, newbies will be
+  automatically denied.
+
+:ammend
+
+AMMEND <log> <string>  - add comment to <log>, consisting of <string>
+
+:psx
+
+PSX  - execute the shell command 'ps' and send the results to the player.
+       the options for this can be altered as needed in soft/config.msg
+       one thing of note, this is executed syncronously, the talker
+       stops everything its doing and waits for the command to finish.
+       in normal operation, the execution time of the command is so
+       quick that it wouldnt ever be noticed, however it is something
+       of which to be aware.
+       
+    Explination of results ...
+  USER       - username (owner of process)
+  PID        - process id
+  %CPU       - percent of the processor being used (as a guideline)
+  %MEM       - percent of memory (ram) being used
+  SIZE       - true size of the process, in kilobytes
+  RSS        - realistic size of the process, in kilobytes
+  TTY        - controling terminal of the process
+  STAT       - state of process, (R) running, (S) sleeping, 
+               (D) swapping, (Z) zombie, (T) stopped (trace)
+  START      - when the process began
+  TIME       - how much cpu time the process has used
+  COMMAND    - with -c option, the name of the executable for the process
+
+:search,ese
+
+SEARCH <type> <query>  - search various parts of players in file <type>
+                         for various strings <query>
+
+
+  Type                      Action
+
+  names <query>             search for <query> in players' names
+
+  xref <query>              search for <query> at the beginning of
+                                players names.
+
+  sites <query>             search for <query> in players last host
+                             (note, the last host is saved as alpha
+                             if it has it, ip if not... so check both
+                             if you are really looking)
+
+  emails <query>            search for <query> in players emails
+
+  urls <query>              search for <query> in players urls
+
+  gits <query>              search for <query> in git strings
+                             and in who made the player a git
+
+  swarn <query>             search for <query> in saved warns
+                             and in who set the saved warn
+
+  resby <query>             search for <query> (usually the name of a su)
+                             in who made players a resident.
+
+  richest <number>          search for all those that have more than
+                             <number> of money
+
+  trouble <number>          search for all those that have more than
+                             <number> of discipline commands used on them
+
+  sstats                    show all staff and stats
+
+
+    Note, not all priv levels have access to all types of searches.
+
+:last
+
+LAST - Lists people who recently connected to &t including
+       when they disconnected and how long they were on for.
+
+:ichan,iu,ih,ie,is,it
+
+The intercom channel (ichan) allows you to talk to people on different
+talkers without missing the conversation in your own talker. 
+
+IU <message> (or) IH <message>  - Say something on the channel
+IE <action>                     - Emote something on the channel
+IS <song>                       - Sing something on the channel
+IT <thought>                    - Think something on the channel
+MUFFLE ICHAN                    - Muffle the intercom channel 
+
+Notes: * People who are on the same talker as you will be identified by
+         their name only ie.
+
+           <ichan> &m->n says 'hello!'
+
+       * People who aren't on the same talker as you will be identified by
+         their name and talker abbreviation ie.
+
+           <ichan> skippy@uber says 'hello there'
+
+       * You will be informed of people who go on or off the channel.
+       * Treat the intercom channel as you would the intercom room. You
+         must not swear, talk about drugs, pirated software (warez) or
+         anything deemed offensive or racist.
+       * For credits, please see "help ichan-credits"
+
+:ichan-credits,about-ichan,ichan-who
+
+  Intercom channel (ichan) for Playground/EW based talkers
+
+  Author:        Richard 'Silver' Lawrence
+  Original idea: Mike 'traP' Bourdaa
+  Version:       2.1
+  Download:      http://pgplus.ewtoo.org/library.html
+  Author email:  silver@ewtoo.org
+  Release date:  8th July 1999
+  Initial date:  30th November 1998
+		

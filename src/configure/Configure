@@ -353,22 +353,4 @@ mv configure/.tmpconfig configure/.config
 mv configure/.tmpconfig.h configure/.config.h
 cp configure/.config.h include/autoconfig.h
 
-echo
-echo "---------------------- Playground+ Configuration --------------------------"
-echo
-echo "You should now finalise your settings for Playground+ by editing the config"
-echo "file located in 'soft/config.msg'"
-echo
-echo "If you haven't done so already, you should also edit 'admin.h' in the 'include'"
-echo " directory and set up who you would like to have HCAdmin privs."
-echo
-echo "Otherwise your configuration of PG+ is now complete. You can"
-echo "compile the code by typing 'make install'."
-echo 
-echo "If you wish to change the options you should re-run 'make config'"
-echo "DONT edit the 'autoconfig.h' file or you could cause problems"
-echo "when you next run 'make config'"
-echo
-echo "---------------------------------------------------------------------------"
-echo
 exit 0

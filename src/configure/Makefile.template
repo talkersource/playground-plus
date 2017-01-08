@@ -1,10 +1,26 @@
+//
+// Playground Plus Makefile Template
+// --------------------------------
+//
+// This is the makefile template for Playground Plus, should you wish to
+// modify your Makefile then you should edit THIS file and then run
+// "make newos" to install it.
+//
+// *MF_DATE*, *MF_OS*, *MF_AUTHOR*, *MF_OS_CFLAGS*, *MF_OTHER_CFLAGS* and
+// *MF_LIBS* will be replaced with the appropriate values depending upon
+// your operating system (which will be determined by "make newos")
+//
+// All lines starting with // will not be included in the final Makefile
+//
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// 
 #
 # PLAYGROUND PLUS MAKEFILE
 # (based around the replacement makefile for PG96 by Spire)
 #
-#    Makefile date : 20.06.1998
-#    Makefile OS   : HPUX 10
-#    Porting by    : <unknown>
+#    Makefile date : *MF_DATE*
+#    Makefile OS   : *MF_OS*
+#    Porting by    : *MF_AUTHOR*
 #
 # ========================================================================
 #
@@ -34,7 +50,7 @@
 #  your 'version' command.
 #
 
-#USE_LIBG = 1
+USE_LIBG = 1
 
 #
 #  Defining VERBOSE_MODE will cause the talker to log a large amount of
@@ -74,55 +90,14 @@ PERMS			= 700
 # Specific flags according to your operating system
 #
 
-OS_SPECIFIC_CFLAGS	= -DHPUX
-OS_SPECIFIC_LIBS	=
+OS_SPECIFIC_CFLAGS	= *MF_OS_CFLAGS*
+OS_SPECIFIC_LIBS	= *MF_LIBS*
 
 #
 # The objects that need to be linked to make the TALKER executable ONLY.
-# If you add a new file then you need to include it here too otherwise
-# it won't be compiled with the talker
-#
+# These are automatically worked out by "make depend"
 
-OBJECTS = $(OBJECT_LOCATION)/admin.o \
-          $(OBJECT_LOCATION)/admin2.o \
-          $(OBJECT_LOCATION)/aliases.o \
-          $(OBJECT_LOCATION)/channel.o \
-          $(OBJECT_LOCATION)/comm_stats.o \
-          $(OBJECT_LOCATION)/commands.o \
-          $(OBJECT_LOCATION)/dsc.o \
-          $(OBJECT_LOCATION)/dynamic.o \
-          $(OBJECT_LOCATION)/dynatext.o \
-          $(OBJECT_LOCATION)/editor.o \
-          $(OBJECT_LOCATION)/examine.o \
-          $(OBJECT_LOCATION)/gag.o \
-          $(OBJECT_LOCATION)/games.o \
-          $(OBJECT_LOCATION)/globals.o \
-          $(OBJECT_LOCATION)/glue.o \
-          $(OBJECT_LOCATION)/history.o \
-          $(OBJECT_LOCATION)/ident_client.o \
-          $(OBJECT_LOCATION)/intercom_glue.o \
-          $(OBJECT_LOCATION)/items.o \
-          $(OBJECT_LOCATION)/last.o \
-          $(OBJECT_LOCATION)/lists.o \
-          $(OBJECT_LOCATION)/mail.o \
-          $(OBJECT_LOCATION)/multi.o \
-          $(OBJECT_LOCATION)/news.o \
-          $(OBJECT_LOCATION)/parse.o \
-          $(OBJECT_LOCATION)/plists.o \
-          $(OBJECT_LOCATION)/reboot.o \
-          $(OBJECT_LOCATION)/room.o \
-          $(OBJECT_LOCATION)/session.o \
-          $(OBJECT_LOCATION)/shortcut.o \
-          $(OBJECT_LOCATION)/slots.o \
-          $(OBJECT_LOCATION)/socials.o \
-          $(OBJECT_LOCATION)/socket.o \
-          $(OBJECT_LOCATION)/softmsg.o \
-          $(OBJECT_LOCATION)/spodlist.o \
-          $(OBJECT_LOCATION)/tag.o \
-          $(OBJECT_LOCATION)/talking.o \
-          $(OBJECT_LOCATION)/ttt.o \
-	  $(OBJECT_LOCATION)/version.o \
-          $(OBJECT_LOCATION)/xstring.o \
+include .Makefile_objects
 	  
 #
 # If you start editing stuff below here you better know what you are doing!
@@ -134,22 +109,22 @@ OBJECTS = $(OBJECT_LOCATION)/admin.o \
 #
 
 ifdef DEBUGGING
-CFLAGS	= -O3 -g -Wall -Winline -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual -Wcast-align -Wnested-externs -Wtraditional
+CFLAGS	= -g3 -ggdb -Wall -Winline -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual -Wcast-align -Wnested-externs -Wno-cast-align
 LDFLAGS	= -g
 ifdef USE_LIBG
-LIBS	= -lg -Wl,-qmagic
-CFLAGS	+= -DDEBUGGING
+LIBS	= -Wl,-qmagic
+CFLAGS	+= -DDEBUGGING -ggdb
 endif
 ifdef VERBOSE_MODE
 CFLAGS	+= -DDEBUG_VERBOSE
 endif
 else
-CFLAGS	= -O3 -Wall -Winline -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual -Wcast-align -Wnested-externs -Wtraditional
+CFLAGS	= -O3 -Wall -Winline -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual -Wcast-align -Wnested-externs -Wno-cast-align
 LIBS	= 
 LDFLAGS	=
 endif
 
-CFLAGS	+= $(OS_SPECIFIC_CFLAGS) -DTALKER_EXEC=\"$(TALKER)\"
+CFLAGS	+= $(OS_SPECIFIC_CFLAGS) -DTALKER_EXEC=\"$(TALKER)\" *MF_OTHER_CFLAGS*
 LIBS	+= $(OS_SPECIFIC_LIBS)
 
 #
@@ -202,9 +177,10 @@ $(INTERCOM):	intercom.c include/intercom.h
 	@$(CC) $(CFLAGS) $(DEFS) -o $(INTERCOM) intercom.c $(LIBS)
 
 version:
-	@echo \#define COMPILE_TIME \"`date`\" > include/version.h
-	@`which bash` configure/get_dir
-
+	@echo "#define COMPILE_TIME \"`date`\"" > include/version.h
+	@echo "#define UNAME \"`uname`\"" >> include/version.h
+	@bash configure/get_dir
+	
 broadcast:
 	@echo ""
 	@echo "Using OS specific flags : $(OS_SPECIFIC_CFLAGS)"
@@ -237,7 +213,7 @@ setup:  all
 
 clean:
 	@echo "Deleting compilation output and dependencies"
-	@-rm -f $(TALKER) $(ANGEL) $(IDENT) $(INTERCOM) $(OBJECTS) ../junk/* 
+	@-rm -f $(TALKER) $(ANGEL) $(IDENT) $(INTERCOM) $(OBJECTS) ../junk/*
 
 purge vclean:
 	@echo "Deleting old logs, scripts, reports and emergency files"
@@ -249,20 +225,18 @@ scrub:	clean purge
 	@-rm -rf ../files/news/*
 
 $(OBJECT_LOCATION)/%.o:	include/config.h include/player.h include/autoconfig.h Makefile include/proto.h include/robot_player.h include/root.h
-	@printf "Now compiling .... %-15s\t%s lines \n" $*.c "`wc -l $*.c | cut -b4-7`"
+	@printf "Now compiling .... %-15s\t%s lines \n" $*.c "`wc -l $*.c | cut -b4-8`"
 	@$(CC) $(CFLAGS) $(DEFS) -c $*.c -o $(OBJECT_LOCATION)/$*.o
 
 newos:
-	@`which bash` configure/setup
+	@bash configure/setup
+	@bash configure/create_objects "*MF_OS_CFLAGS* *MF_OTHER_CFLAGS*"
 
 config:
-	@`which bash` configure/Configure configure/Configure.options
+	@bash configure/configure_code
 
 depend:
-	@echo "Working out dependencies. Hang on ..."
-	@( for i in *.c; do gcc -M $$i; done ) > .rawdep 2>/dev/null
-	@sed -e '1,$$s/^[a-z]/$$(OBJECT_LOCATION)\/&/' .rawdep > .depend
-	@echo "Done."
+	@bash configure/create_objects "*MF_OS_CFLAGS* *MF_OTHER_CFLAGS*"
 
 #
 # Dependancies (automatically worked out by "make depend")

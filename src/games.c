@@ -336,7 +336,7 @@ void eightball(player * p, char *str)
     return;
   }
   if (config_flags & cfNOSWEAR)
-    if (!strcmp(p->location->owner->lower_name, "main") ||
+    if (!strcmp(p->location->owner->lower_name, SYS_ROOM_OWNER) ||
 	!strcmp(p->location->owner->lower_name, "intercom"))
       str = filter_rude_words(str);
 
@@ -348,7 +348,7 @@ void eightball(player * p, char *str)
       strcpy(msg, "Reply hazy ... ask again later.");
       break;
     case 1:
-      strcpy(msg, "Its a definate possibility.");
+      strcpy(msg, "Its a definite possibility.");
       break;
     case 2:
       strcpy(msg, "Probably not ...");

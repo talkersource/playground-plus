@@ -6,6 +6,11 @@ PG+ uses a different makefile setup to PG96. The major differences are
 that its better written and documented, hides compilation junk and comes
 with an automatic host configurator script.
 
+First thing is that the Makefile is hidden in configure/Makefile.template.
+This is, as you probably guessed, the template for all makefiles. So if
+you need to edit the makefile then edit this one and you won't loose all
+your work if you do "make newos" again. 
+
 There are several options in the Makefile which are detailed both in the
 Makefile itself and here:
 
@@ -73,4 +78,4 @@ If you are on a paying server do not be suprised if they wish to charge
 you more for running a talker with the latter options enabled.
 
 	Richard Lawrence (aka Silver)
-	31st May 1998
+	26th September 1999

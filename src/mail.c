@@ -1,6 +1,6 @@
 /*
  * Playground+ - mail.c
- * All mail and news code
+ * All mail code
  * ---------------------------------------------------------------------------
  */
 
@@ -64,6 +64,11 @@ note *create_note(void)
   n->text.length = 0;
   strcpy(n->header, "DEFUNCT");
   strcpy(n->name, "system");
+  while (find_note(unique))
+  {
+    ++unique;
+    unique &= 65535;
+  }
   n->id = unique++;
   unique &= 65535;
   num = (n->id) % NOTE_HASH_SIZE;
@@ -556,7 +561,7 @@ void list_all_notes(player * p, char *str)
 
   strcpy(stack, " All notes --\n");
   stack = strchr(stack, 0);
-  for (hash = 0; hash <= NOTE_HASH_SIZE; count = 0, hash++)
+  for (hash = 0; hash < NOTE_HASH_SIZE; count = 0, hash++)
   {
     for (scan = n_hash[hash]; scan; scan = scan->hash_next)
       count++;
@@ -741,9 +746,9 @@ void view_sent(player * p, char *str)
   while (mail)
   {
     if (p->residency & ADMIN)
-      sprintf(stack, "(%d) [%d] %s\n", mail->id, count, mail->header);
+      sprintf(stack, "(%d) [%d] %s^N\n", mail->id, count, mail->header);
     else
-      sprintf(stack, "[%d] %s\n", count, mail->header);
+      sprintf(stack, "[%d] %s^N\n", count, mail->header);
 
     stack = strchr(stack, 0);
     scan = mail->next_sent;
@@ -1076,7 +1081,7 @@ void end_mail(player * p)
       if (mail->flags & ANONYMOUS)
 	sprintf(stack, "\nDate: %s"
 		"\nFrom: <anonymous>"
-		"\nTo: <undisclosed recipiants>"
+		"\nTo: <anonymous>'s friends"
 	     "\nSubject: %s^N\n\n", convert_time(mail->date), mail->header);
       else
 	sprintf(stack, "\nDate: %s"
@@ -1116,10 +1121,10 @@ void end_mail(player * p)
     command_type |= HIGHLIGHT;
 
     if (mail->flags & ANONYMOUS)
-      sprintf(stack, " -=*> New mail, '%s' sent anonymously\n\n",
+      sprintf(stack, " -=*> New mail, '%s^N' sent anonymously\n\n",
 	      mail->header);
     else
-      sprintf(stack, " -=*> New mail, '%s' from %s.\n\n",
+      sprintf(stack, " -=*> New mail, '%s^N' from %s.\n\n",
 	      mail->header, mail->name);
     stack = end_string(stack);
 
@@ -1248,7 +1253,7 @@ void send_letter(player * p, char *str)
   /* end friend check */
   tell_player(p, " Enter main text of the letter...\n");
   *stack = 0;
-  start_edit(p, MAX_ARTICLE_SIZE, end_mail, quit_mail, stack);
+  start_edit(p, MAX_ARTICLE_SIZE, end_mail, quit_mail, stack, 0);
   if (p->edit_info)
   {
     p->edit_info->misc = (void *) mail;
@@ -1403,7 +1408,7 @@ void reply_letter(player * p, char *str)
   *stack++ = 0;
 
   tell_player(p, " Please trim letter as much as possible...\n");
-  start_edit(p, MAX_ARTICLE_SIZE, end_mail, quit_mail, body);
+  start_edit(p, MAX_ARTICLE_SIZE, end_mail, quit_mail, body, 0);
   if (p->edit_info)
   {
     p->edit_info->misc = (void *) mail;
@@ -1761,7 +1766,7 @@ void forward_letter(player * p, char *str)
   *stack++ = 0;
 
   tell_player(p, " Please trim letter as much as possible...\n");
-  start_edit(p, MAX_ARTICLE_SIZE, end_mail, quit_mail, body);
+  start_edit(p, MAX_ARTICLE_SIZE, end_mail, quit_mail, body, 0);
   /* check for friendpost here... */
   if (!strcasecmp(recip, "friends"))
   {

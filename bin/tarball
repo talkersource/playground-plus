@@ -23,8 +23,7 @@ mkdir /tmp/$USER/pgplus
 echo "Copying everything over"
 cp -rf $ROOT_DIR/* /tmp/$USER/pgplus
 
-cd /tmp/$USER/pgplus/src
-make scrub
+cd /tmp/$USER/pgplus/src; make scrub
 
 echo "Tarring it up"
 cd /tmp/$USER

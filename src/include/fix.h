@@ -9,9 +9,9 @@ struct rlimit;
 struct timval;
 struct itimerval;
 
-#ifndef REDHAT5
+#ifdef NEED_SIGPAUSE_DECL
 extern int      sigpause(int);
-#endif
+#endif /* NEED_SIGPAUSE_DECL */
 
 #ifndef BSDISH
    #if !defined(linux)
@@ -19,10 +19,12 @@ extern int      sigpause(int);
    #endif /* LINUX */
 #endif
 
-#ifndef REDHAT5
+#ifdef NEED_GETITIMER_DECL
 extern int      getitimer(int, struct itimerval *);
+#endif /* NEED_GETITIMER_DECL */
+#ifdef NEED_GETRLIMIT_DECL
 extern int      getrlimit(int, struct rlimit *);
-#endif
+#endif /* NEED_GETRLIMIT_DECL */
 
 #ifndef BSDISH
    #if !defined(linux)

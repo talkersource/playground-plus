@@ -26,7 +26,7 @@ room *intercom_room;
 
 /* sizes */
 
-int max_players, current_players = 0;
+int max_players, current_players = 0, total_players = 0;
 int max_ppl_on_so_far = 0;
 int in_total = 0, out_total = 0, in_current = 0, out_current = 0, in_average = 0,
   out_average = 0, net_count = 10, in_bps = 0, out_bps = 0, in_pack_total = 0,
@@ -84,7 +84,7 @@ int social_index;
 player **pipe_list;
 int pipe_matches;
 
-room *entrance_room, *prison, *colony, *comfy, *boot_room;
+room *entrance_room, *prison, *relaxed, *comfy, *boot_room;
 
 /*
  * lists for use with idle times its here for want of a better place to put it
@@ -104,9 +104,40 @@ file idle_string_list[] =
   {"appears to be doing something else.\n", 900},
   {"is slipping into a coma.\n", 1200},
   {"is hospitalized and is comatose.\n", 1800},
-  {"Is probably not going to recover\n", 2400},
+  {"is probably not going to recover\n", 2400},
   {"has had the plug pulled.\n", 3000},
   {"is dead Jim.\n", 3600},
   {"has been six feet under for some time\n", 7200},
   {0, 0}
 };
+
+/* reserved login names -- ie. name that people cannot use */
+
+const char *reserved_names[] =
+{
+   "me",
+   "newbies",
+   "sus",
+   "staff",
+   "finger",
+   "who",
+   ""
+};
+
+/* for sites that you don't want logged as a non-connection
+   (ie. sites containing talker listings which periodically connect to the
+   talker) 
+
+   NOTE: IP address equivilants are NOT necessary here but have been
+included
+         just in case a nameserver lookup fails
+
+*/
+
+const char *unlogged_sites[] =
+{
+   "ewtoo.org", "195.153.247.85",
+   ""
+};
+
+

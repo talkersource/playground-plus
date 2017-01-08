@@ -1,7 +1,7 @@
 
 ---------------------- Information for New Users --------------------------
 
-&t is a Playground+ 1.0 (by Silver) chat program based
+&t is a Playground Plus (by Silver) chat program based
 around Playground96 (by traP, astyanax, Nogard and vallie) which itself is
 based around Summink (by Athanasius) which itself is based on EW-Too by
 Simon Marsh.

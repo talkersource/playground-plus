@@ -19,16 +19,17 @@
 #include <time.h>
 #include <memory.h>
 #include <sys/socket.h>
+#include <assert.h>
 
 #include "include/config.h"
 #include "include/player.h"
 #include "include/fix.h"
 #include "include/proto.h"
+#include "include/intercom.h"
 
 #ifdef ANTICRASH
 #include <setjmp.h>
 #endif
-
 
 #define ABS(x) (((x)>0)?(x):-(x))
 
@@ -36,6 +37,7 @@
 
 int active_port = 0;
 char active_talker_name[160];
+int max_log_size = 5;
 
 char *tens_words[] =
 {"", "ten", "twenty", "thirty", "forty", "fifty",
@@ -65,6 +67,35 @@ char *EditableDirs[] =
   ""
 };
 
+char *ConfigFlagSwitches[] =
+{
+  "",
+  "Spam prevention",
+  "Command privs alteration",
+  "Swear filtering",
+  "Finger from login",
+  "Walling of proposals",
+  "Walling of marriages",
+  "Walling of rejections",
+  "Walling of divorces",
+  "Walling of accepts",
+  "Vegas style slots",
+  "Idling is bad",
+  "Admin idle exemption",
+  "Force command",
+  "Multi removal infroming",
+  "Newbies closed automatically",
+  "Multi verbosity",
+  "Newbie selfres",
+  "Truespod time",
+  "Reconnection look",
+  "Online file editing",
+  "Examine inform",
+  "Welcoming email",
+  "All capped names",
+  "Sus can recap others",
+  ""
+};
 
 char shutdown_reason[256] = "";
 
@@ -271,13 +302,13 @@ char *birthday_string(time_t bday)
 char *sys_time()
 {
   time_t t;
-  static char time_string[25];
+  static char time_string[27];
   t = time(0);
 
   if (config_flags & cfUSUK)
-    strftime(time_string, 25, "%H:%M:%S - %m/%d/%y", localtime(&t));
+    strftime(time_string, 27, "%H:%M:%S - %m/%d/%Y", localtime(&t));
   else
-    strftime(time_string, 25, "%H:%M:%S - %d/%m/%y", localtime(&t));
+    strftime(time_string, 27, "%H:%M:%S - %d/%m/%Y", localtime(&t));
 
   return time_string;
 }
@@ -345,7 +376,11 @@ char *get_address(player * p, player * q)
   int can_get_addy = 0;
   retstr = addy;
 
-  if (q == NULL)
+#ifndef IDENT
+  if (q == NULL || p == q)
+#else
+  if (q == NULL)  /* residents don't see their own ident lookup */
+#endif
     can_get_addy = 1;
   else if (q->residency & LOWER_ADMIN)
     can_get_addy = 1;
@@ -684,6 +719,33 @@ char *full_name(player * p)
   return p->name;
 }
 
+
+/* EWE */
+/* addition of sensi numeric_s function */
+char *numeric_s(int foo)
+{
+  if(foo==1)
+    return "";
+  return "s";
+}
+
+
+void inform_config_flag_changes(int old, int new)
+{
+  int i;
+
+  for (i = 1; ConfigFlagSwitches[i][0]; i++)
+  {
+    if ((old & (1 << i)) != (new & (1 << i)))
+    {
+      if (new & (1 << i))
+	SUWALL(" -=*> %s switched ON\n", ConfigFlagSwitches[i]);
+      else
+	SUWALL(" -=*> %s switched OFF\n", ConfigFlagSwitches[i]);
+    }
+  }
+}
+
 void set_config_flag(char *type, int bit)
 {
   char *ptr;
@@ -698,12 +760,17 @@ void set_config_flag(char *type, int bit)
 
 void set_config_flags(void)
 {
+  int oldcf = config_flags;
 
   if (!strcasecmp(get_config_msg("time_format"), "us"))
     config_flags |= cfUSUK;
   else
     config_flags &= ~cfUSUK;
 
+  if (!strcasecmp(get_config_msg("slot_style"), "vegas"))
+    config_flags |= cfVEGASLOTS;
+  else
+    config_flags &= ~cfVEGASLOTS;
 
   set_config_flag("nospam", cfNOSPAM);
   set_config_flag("privs_change", cfPRIVCHANGE);
@@ -727,6 +794,7 @@ void set_config_flags(void)
   set_config_flag("show_when_xd", cfSHOWXED);
   set_config_flag("do_email_check", cfWELCOMEMAIL);
   set_config_flag("capped_names", cfCAPPEDNAMES);
+  set_config_flag("sus_can_recap", cfSUSCANRECAP);
 
 
   set_talker_addy();
@@ -734,7 +802,15 @@ void set_config_flags(void)
   strncpy(talker_email, get_config_msg("talker_email"), 79);
   backup_hour = atoi(get_config_msg("backup_hour"));
   social_index = atoi(get_config_msg("social_index"));
+  max_log_size = atoi(get_config_msg("max_log_size"));
+  if (max_log_size <= 0)	/* just in case */
+    max_log_size = 5;
+
+  if (oldcf)
+    inform_config_flag_changes(oldcf, config_flags);
 }
+
+
 
 /* lil func to inform of big changes done in config.msg 
    (these only get done on a reload of config.msg, not on boot 
@@ -747,6 +823,17 @@ void update_configs(void)
   if (active_port != tp)	/* this aint no lil operation here */
   {
     SUWALL(" -=*> Port changing from %d to %d ...\n", active_port, tp);
+
+#ifdef INTERCOM
+    /* if they are stupid twats then they'll have the intercom running
+       with a load of entries in the database - so to minimise the
+       number of people getting spammed with their change of port we'll
+       send an "announce move" */
+    send_to_intercom(0, "%c%s:%d", WE_ARE_MOVING, talker_ip, tp);
+    kill_intercom();  /* intercom will reboot itself after a minute */
+    intercom_port = tp - 1;
+#endif
+
     close_down_socket();
     init_socket(tp);
     active_port = tp;
@@ -754,13 +841,6 @@ void update_configs(void)
     kill_ident_server();
     init_ident_server();
 #endif /* IDENT */
-#ifdef INTERCOM			/* im not up on intercom enough to know if this will actually
-				   work or not....but if there is any chance of it, this
-				   method is the mostly likely to sucseed id imagine */
-    intercom_port = active_port - 1;
-    kill_intercom();
-    start_intercom();
-#endif /* INTERCOM */
   }
 
   atn = get_config_msg("talker_name");
@@ -788,6 +868,17 @@ void init_messages(void)
 
     if (stat(MessageFileArray[i].path, &sbuf) < 0)
     {
+      if (!strncmp(MessageFileArray[i].path, "soft/", 5))
+      {
+	LOGF("error", "\n"
+	     " Omigawd !!!   Soft message file missing '%s'\n\n"
+	   " We really can't boot without this file so I'm gonna go ahead\n"
+	     " and exit... if you don't know where this file went and dont\n"
+	     " have any backups, you'll need to get it from a PG+ dist\n\n",
+	     MessageFileArray[i].path);
+	exit(2);
+      }
+
       LOGF("error", "Missing file '%s'!", MessageFileArray[i].path);
       continue;
     }
@@ -820,7 +911,6 @@ void init_messages(void)
 }
 
 
-
 void log(char *filename, char *string)
 {
   int fd;
@@ -828,6 +918,8 @@ void log(char *filename, char *string)
   char *oldstack = stack;
   char path[160];
   struct stat sbuf;
+
+  SEND_TO_DEBUG("%s log: %s", filename, string);
 
   memset(path, 0, 160);
   sprintf(path, "logs/%s.log", filename);
@@ -838,21 +930,23 @@ void log(char *filename, char *string)
     length = priv_for_log_str(get_deflog_msg(filename));
     if (length > 0)
       fchmod(fd, S_IWUSR | length);
-    close(fd);			/* i know we could leave it open... */
     length = 0;
   }
-
-  /* *BSD doesn't support O_SYNC?? */
+  else
+  {
 #ifdef BSDISH
-  fd = open(path, (O_RDWR | O_CREAT), (S_IRUSR | S_IWUSR));
+    /* *BSD doesn't support O_SYNC?? */
+    fd = open(path, (O_RDWR | O_CREAT | O_APPEND), (S_IRUSR | S_IWUSR));
 #else
-  fd = open(path, (O_RDWR | O_CREAT | O_SYNC), (S_IRUSR | S_IWUSR));
+    fd = open(path, (O_RDWR | O_CREAT | O_SYNC | O_APPEND),
+	      (S_IRUSR | S_IWUSR));
 #endif
-  length = lseek(fd, 0, SEEK_END);
+    length = sbuf.st_size;
+  }
 
   /* Prevent bug and idea logs from being clipped */
   if (strcasecmp(string, "bug") && strcasecmp(string, "idea"))
-    if ((length + strlen(string)) > (atoi(get_config_msg("max_log_size")) * 1024))
+    if ((length + strlen(string)) > (max_log_size * 1024))
     {
       lseek(fd, 0, SEEK_SET);	/* put file ptr back to beginning of file */
       read(fd, stack, length);	/* read it into stack */
@@ -883,23 +977,34 @@ void log(char *filename, char *string)
 }
 
 
+
 /* send things to a file (used for spodlist and mailing code) --Silver */
 
 void sendtofile(char *f, char *string)
 {
-  int fd;
+  FILE *fp;
+  char *fname;
 
-  sprintf(stack, "reports/%s.rpt", f);
+  fname = malloc(strlen(string)+15);
+  if (!fname)
+  {
+    LOGF("error", "no memory to malloc in sendtofile");
+    return;
+  }
 
-#ifdef BSDISH
-  fd = open(stack, O_CREAT | O_WRONLY | S_IRUSR | S_IWUSR);
-#else
-  fd = open(stack, O_CREAT | O_WRONLY | O_SYNC, S_IRUSR | S_IWUSR);
-#endif
+  sprintf(fname, "reports/%s.rpt", f);
 
-  sprintf(stack, "%s\n", string);
-  write(fd, stack, strlen(stack));
-  close(fd);
+  fp = fopen(fname, "a");
+  if (!fp)
+  {
+    LOGF("error", "can't send text to '%s' in sendtofile", fname);
+    free(fname);   
+    return;
+  }
+ 
+  fprintf(fp, "%s\n", string);
+  fclose(fp);
+  free(fname);
 }
 
 void banlog(char *f, char *string)
@@ -1002,6 +1107,17 @@ void handle_error(char *error_msg)
 #else
   su_wall("\n\n");
   su_wall(" -=*> *WIBBLE* Something bad has happened!\n\007");
+#ifdef AUTOSHUTDOWN
+  if (auto_sd)  /* don't reboot if autoshutdown is on */
+  {
+    su_wall(" -=*> Autoshutdown active! Reboot may corrupt pfiles.\n");
+    su_wall(" -=*> Starting immediate panic shutdown ...\n");
+    raw_wall("\n\n"
+             "      -=> *WIBBLE* Something bad has happened. Trying to save files <=-\007\n\n\n");
+    close_down();
+    exit(-1);
+  }
+#endif /* AUTOSHUTDOWN */
   do_reboot();
 #endif
 }
@@ -1086,12 +1202,18 @@ file load_file(char *filename)
   return load_file_verbose(filename, 1);
 }
 
-/* convert a string to lower case */
+/* convert a string to lower case 
+   fix by Nevyn
+*/
 
 void lower_case(char *str)
 {
+  assert(str);
   while (*str)
-    *str++ = tolower(*str);
+  {
+    *str = tolower((unsigned char)*str);
+    str++;
+  }
 }
 
 /* fns to block signals */
@@ -1341,6 +1463,8 @@ void boot(int port)
   init_multis();		/* multis/chains */
 #endif
   init_socials();		/* kRad socials */
+  /* EWE */
+  ewe_init_editor();		/* EWe editor */
   init_global_histories();	/* history logging */
 #ifdef ROBOTS
   init_robots();		/* robots code */
@@ -1348,6 +1472,7 @@ void boot(int port)
 #ifdef IDENT
   init_ident_server();		/* ident server */
 #endif
+  get_hardware_info();		/* for netstat */
 
 #ifndef PC
   if (!(sys_flags & SHUTDOWN))
@@ -1358,10 +1483,14 @@ void boot(int port)
     new.it_value.tv_usec = new.it_interval.tv_usec;
 #if defined(hpux) | defined(linux)
     sa.sa_handler = actual_timer;
-#ifndef REDHAT5
+#ifdef HAVE_SIGEMPTYSET
+    sigemptyset(&sa.sa_mask);
+#else
     sa.sa_mask = 0;
-#endif
+#endif /* HAVE_SIGEMPTYSET */
+
     sa.sa_flags = 0;
+
     if ((int) sigaction(SIGALRM, &sa, 0) < 0)
 #else
     if ((int) signal(SIGALRM, actual_timer) < 0)
@@ -1375,10 +1504,14 @@ void boot(int port)
 #if defined(hpux) | defined(linux)
   sa.sa_handler = sigpipe;
 
-#ifndef REDHAT5
-  sa.sa_mask = 0;
-#endif
+#ifdef HAVE_SIGEMPTYSET
+    sigemptyset(&sa.sa_mask);
+#else
+    sa.sa_mask = 0;
+#endif /* HAVE_SIGEMPTYSET */
+
   sa.sa_flags = 0;
+
   sigaction(SIGPIPE, &sa, 0);
   sa.sa_handler = sighup;
   sigaction(SIGHUP, &sa, 0);
@@ -1397,9 +1530,21 @@ void boot(int port)
   sigaction(SIGSYS, &sa, 0);
 #endif /* linux */
 
-#ifdef REDHAT5
+#ifdef HAVE_SIGEMPTYSET
   sigemptyset(&sa.sa_mask);
-#endif
+#else
+  sa.sa_mask = 0;
+#endif /* HAVE_SIGEMPTYSET */
+
+ sa.sa_handler = SIG_IGN;
+ sa.sa_flags = 0;
+ sigaction(SIGPIPE, &sa, NULL);
+  
+#ifdef HAVE_SIGEMPTYSET
+  sigemptyset(&sa.sa_mask);
+#else
+  sa.sa_mask = 0;
+#endif /* HAVE_SIGEMPTYSET */
 
   sa.sa_handler = sigterm;
   sigaction(SIGTERM, &sa, 0);
@@ -1471,6 +1616,7 @@ void log_pid(void)
 int main(int argc, char *argv[])
 {
   int port = 0;
+  char *ptr;
 
   action = "boot";
 
@@ -1491,6 +1637,15 @@ int main(int argc, char *argv[])
   init_messages();
   set_config_flags();
   strncpy(active_talker_name, get_config_msg("talker_name"), 159);
+
+
+  /* any start up configs here */
+  ptr = get_config_msg("screening");
+  if (!strcasecmp(ptr, "on") || !strcasecmp(ptr, "yes"))
+    sys_flags |= SCREENING_NEWBIES;
+
+  strncpy(session, get_session_msg("default_session"), MAX_SESSION - 3);
+  strncpy(sess_name, get_session_msg("default_setter"), MAX_NAME - 1);
 
   /* are we running in verbose debugging mode? */
 #ifdef DEBUG_VERBOSE
@@ -1547,10 +1702,6 @@ int main(int argc, char *argv[])
   active_port = port;
   boot(port);
 
-#ifdef INTERCOM
-  start_intercom();
-#endif
-
   if (sys_flags & UPDATE_URLS)
     do_update(3);
   else if (sys_flags & UPDATE_INT_DATA)
@@ -1563,13 +1714,20 @@ int main(int argc, char *argv[])
     do_update(0);
   else if (sys_flags & UPDATEROOMS)
     do_update(1);
-  sys_flags |= NO_PRINT_LOG;
+  else
+  {
+#ifdef INTERCOM
+  start_intercom();
+#endif
 
-  log_pid();			/* Log the Process ID of of the talker */
+    log_pid();			/* Log the Process ID of of the talker */
+  }
+
+  sys_flags |= NO_PRINT_LOG;
 
   log("boot", "Ready and listening for connections");	/* Another formatting line ... -grin- */
 
-/* print a warning if running in debugging mode */
+  /* print a warning if running in debugging mode */
 
 #ifdef DEBUGGING
   printf("\n\n -=*> WARNING! YOU ARE CURRENTLY RUNNING IN ");
@@ -1819,11 +1977,80 @@ void edit_file(player * p, char *str)
   if (!*(gf.where))
     tell_player(p, " File is empty... starting fresh\n");
 
-  start_edit(p, 10240, end_file_edit, quit_file_edit, gf.where);
+  start_edit(p, 10240, end_file_edit, quit_file_edit, gf.where, 0);
   FREE(gf.where);
   if (!p->edit_info)
     tell_player(p, " Sorry jack, failed to get into the editor\n");
   else
     strncpy(p->current_file, oldstack, MAX_DESC - 1);
   stack = oldstack;
+}
+
+
+void get_ps(player * p, char *str)
+{
+  FILE *f;
+  char psc[80], red[240], *oldstack = stack, psp[80];
+  int my_pid = getpid();
+
+  strncpy(psp, get_config_msg("ps_options"), 79);
+  if (!strcasecmp(psp, "off"))
+  {
+    tell_player(p, " This command is unimplemented.\n");
+    return;
+  }
+  sprintf(psc, "ps %s", psp);
+  if (!(f = popen(psc, "r")))
+  {
+    TELLPLAYER(p, "Couldnt popen ... errno %d, %s\n", errno, strerror(errno));
+    return;
+  }
+  sprintf(psc, " %d ", my_pid);
+  while (fgets(red, 239, f))
+  {
+    if (strstr(red, psc))
+      stack += sprintf(stack, "^H%s^N", red);
+    else
+      stack += sprintf(stack, "%s", red);
+  }
+  stack = end_string(stack);
+  tell_player(p, oldstack);
+  stack = oldstack;
+  pclose(f);
+}
+
+/* for checking for a reserved name */
+
+int reserved_name (char *name)
+{
+    int i;
+    
+   for (i = 0; reserved_names[i][0]; i++)
+      if (!strcasecmp (reserved_names[i], name))
+         return 1;
+   return 0;
+}
+
+/* for checking for a site that shouldn't be logged */
+
+int unlogged_site(char *site)
+{
+   int i;
+   
+   for (i = 0; unlogged_sites[i][0]; i++)
+      if (!strcasecmp (unlogged_sites[i], site))
+         return 1;
+   return 0;
+}
+
+void setup_itimer(void)
+{
+  struct itimerval new, old;
+
+  new.it_interval.tv_sec = 0;
+  new.it_interval.tv_usec = (1000000 / TIMER_CLICK);
+  new.it_value.tv_sec = 0;
+  new.it_value.tv_usec = new.it_interval.tv_usec;
+  if (setitimer(ITIMER_REAL, &new, &old) < 0)
+    handle_error("Can't set timer.");
 }

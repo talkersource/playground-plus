@@ -51,7 +51,7 @@ void delete_entry_item(saved_player * sp, item * l)
     }
     else
       scan = scan->next;
-  log("error", "Tried to delete item that wasn't there.\n");
+  log("error", "Tried to delete item that wasn't there.");
 }
 
 
@@ -72,7 +72,7 @@ void tmp_comp_item(saved_player * sp)
     next = l->next;
     if (l->id < 0)
     {
-      log("error", "Bad item entry on compress .. auto deleted.\n");
+      log("error", "Bad item entry on compress .. auto deleted.");
       delete_entry_item(sp, l);
     }
     else
@@ -563,14 +563,13 @@ void delete_item(player * p, char *str)
     SUWALL(" -=*> %s deleted item %s because: %s\n",
 	   p->name, s->name, reason);
     LOGF("item_delete", "%s deleted %s (creator: %s) because: %s",
-	 p->name, s->author, s->name, reason);
+	 p->name, s->name, s->author, reason);
   }
   FREE(s);
 }
 
 void inventory(player * u, char *str)
 {
-
   item *i, *inext;
   struct s_item *s;
   player *p;
@@ -582,6 +581,12 @@ void inventory(player * u, char *str)
     p = find_player_global(str);
     if (!p)
       return;
+
+    if (p->residency == NON_RESIDENT)
+    {
+      TELLPLAYER(p, " %s is a non-resident.\n", p->name);
+      return;
+    }
     sprintf(top, "%s is carrying", p->name);
   }
   else
@@ -2034,27 +2039,24 @@ int count_owners(struct s_item *s)
     for (counter = 0; counter < HASH_SIZE; counter++, hashlst++)
       for (scanlist = *hashlst; scanlist; scanlist = scanlist->next)
       {
-	switch (scanlist->residency)
-	{
-	  case STANDARD_ROOMS:
-	    break;
-	  default:
-	    p2 = find_player_absolute_quiet(scanlist->lower_name);
-	    if (!p2)
-	    {
-	      strcpy(dummy.lower_name, scanlist->lower_name);
-	      lower_case(dummy.lower_name);
-	      if (!(load_player(&dummy)))
-		return 0;	/* Theres a cock up, so get out fast */
-	      p2 = &dummy;
-	    }
+	if (scanlist->residency & SYSTEM_ROOM)
+	  continue;
 
-	    for (ii = p2->saved->item_top; ii; ii = inext)
-	    {
-	      inext = ii->next;
-	      if (ii->id == s->id)
-		num++;
-	    }
+	p2 = find_player_absolute_quiet(scanlist->lower_name);
+	if (!p2)
+	{
+	  strcpy(dummy.lower_name, scanlist->lower_name);
+	  lower_case(dummy.lower_name);
+	  if (!(load_player(&dummy)))
+	    return 0;		/* Theres a cock up, so get out fast */
+	  p2 = &dummy;
+	}
+
+	for (ii = p2->saved->item_top; ii; ii = inext)
+	{
+	  inext = ii->next;
+	  if (ii->id == s->id)
+	    num++;
 	}
       }
   }

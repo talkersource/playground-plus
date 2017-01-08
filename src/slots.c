@@ -207,8 +207,8 @@ void slots(player * p, char *str)
   else
     resolve_old_slots(p, slot, sw);
 
-  sprintf(top, "Current value of the pot is %d %s",
-	  pot, get_config_msg("cash_name"));
+  sprintf(top, "Your %s: %d | Pot value: %d",
+	  get_config_msg("cash_name"), p->pennies, pot);
   pstack_mid(top);
   *stack++ = 0;
 
@@ -244,6 +244,6 @@ void view_slots_panels(player * p)
 
 void slots_version()
 {
-  sprintf(stack, " -=*> Slots v1.4 (by astyanax and phypor) enabled.\n");
+  sprintf(stack, " -=*> Slots v1.4 (by astyanax and phypor) installed.\n");
   stack = strchr(stack, 0);
 }

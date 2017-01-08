@@ -14,25 +14,19 @@
 
 /* the system equivalent of the timelocal command */
 
-#ifndef OPENBSD
-   #if !defined(linux)
-      #define TIMELOCAL(x) timelocal(x)
-   #else
-      #define TIMELOCAL(x) mktime(x)
-   #endif 
+#ifdef USE_MKTIME
+ #define TIMELOCAL(x) mktime(x)
 #else
-      #define TIMELOCAL(x) mktime(x)
+ #define TIMELOCAL(x) timelocal(x)
 #endif
 
+/* scandir stuff */
 
-/* this for ULTRIX and Solaris */
-
-#ifdef ULTRIX 
- #define TIMELOCAL(x) mktime(x)
-#endif 
-#ifdef SOLARIS
- #define TIMELOCAL(x) mktime(x)
-#endif 
+#ifdef NEED_CONST_DIRENT
+ #define DIRENT_PROTO const
+#else
+ #define DIRENT_PROTO /* blank */
+#endif
 
 /* Timings */
 
@@ -66,7 +60,14 @@
 #define PING_INTERVAL 10	/* time in secs a users site is pinged */
 #define ULTRIX_PLAYER_LIM 200
 #define TERM_LINES 16
-#define ENTRANCE_ROOM "main.room"
+
+
+#define SYS_ROOM_OWNER "main"
+
+ /* if you change these, make sure to have rooms for them in files/main.rooms */
+#define ENTRANCE_ROOM "room"
+#define RELAXED_ROOM "potty"
+
 #define NEWS_SYNC_INTERVAL (60 * 10) /* how often news has a chance to sync */
 
 /* Additional defines not covered in autoconfig.h or above */
@@ -75,7 +76,6 @@
 
 #if INTERCOM
 #define INTERCOM_SOCKET "junk/intercom_socket"
-#define INTERCOM_NAME get_config_msg("talker_name")
 #endif
 
 #define WHO_IS_THAT        " No such person in saved files...\n"
@@ -86,5 +86,4 @@
    from http://pgplus.ewtoo.org
 */
 
-#define PG_VERSION "1.0.1"
-
+#define PG_VERSION "1.0.10"

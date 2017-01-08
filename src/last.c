@@ -93,10 +93,6 @@ void viewLast(player * p, char *str)
   int i, j, hit = 0;
   char *oldstack = stack, top[70];
 
-  sprintf(top, "Last %d connections to %s", LAST_SHOW,
-	  get_config_msg("talker_name"));
-  pstack_mid(top);
-
   if (*str && isdigit(*str))
   {
     j = atoi(str);
@@ -105,11 +101,20 @@ void viewLast(player * p, char *str)
     if (j > LAST_KEPT)
       j = LAST_KEPT;
     *str = '\0';
+    sprintf(top, "Last %d connections to %s", j, get_config_msg("talker_name"));
   }
   else if (*str)
+  {
     j = LAST_KEPT;
+    sprintf(top, "Last connections to %s by '%s'", get_config_msg("talker_name"), str);
+  }
   else
+  {
     j = LAST_SHOW;
+    sprintf(top, "Last %d connections to %s", j, get_config_msg("talker_name"));
+  }
+
+  pstack_mid(top);
 
 
   for (i = 0; (i < LAST_KEPT && hit < j); i++)

@@ -5,6 +5,15 @@
  */
 
 #include "dynamic.h"
+#ifdef __GNUC__
+#define VARG_END1 __attribute__ ((format (printf,1,2)));
+#define VARG_END2 __attribute__ ((format (printf,2,3)));
+#define VARG_END3 __attribute__ ((format (printf,3,4)));
+#else /* __GNUC__ */
+#define VARG_END1 ;
+#define VARG_END2 ;
+#define VARG_END3 ;
+#endif /* !__GNUC__ */
 
 extern alias *get_alias(player *, char *);
 extern char *birthday_string(time_t bday);
@@ -19,6 +28,10 @@ extern char *end_string(char *);
 extern char *first_char(player *);
 extern char *full_name(player *);
 extern char *gender_raw(player *);
+/* EWE */
+extern void ewe_version(void);
+extern void ewe_init_editor(void);
+
 extern char *get_address (player *, player *);
 extern char *get_flag_name(flag_list *, char *);
 extern char *get_gender_string(player *);
@@ -38,7 +51,9 @@ extern char *name_string(player *, player *);
 extern char *next_space(char *);
 extern char *number2string(int);
 extern char *ping_string(player *);
+extern char *privs_bit_string(int);
 extern char *replace(char *, char *, char *);
+extern char *reserved_names[];
 extern char *retrieve_alias_data(saved_player *, char *);
 extern char *retrieve_item_data(saved_player *, char *);
 extern char *retrieve_list_data(saved_player *, char *);
@@ -51,13 +66,18 @@ extern char *splice_argument(player *, char *, char *, int);
 extern char *store_int(char *, int);
 extern char *store_string(char *, char *);
 extern char *store_word(char *, int);
+extern char *sys_room_id(char *);
 extern char *sys_time(void);
 extern char *tag_string(player *, player **, int);
 extern char *their_player(player *);
 extern char *time_diff(int);
 extern char *time_diff_sec(time_t, int);
+extern char *unlogged_sites[];
 extern char *upper_from_saved(saved_player *);
 extern char *word_time(int);
+extern command_func newbie_dummy_fn;
+extern command_func newbie_start;
+extern player_func login_timeout;
 extern dfile *dynamic_init(char *, int);
 extern file load_file(char *);
 extern file load_file_verbose(char *, int);
@@ -92,6 +112,7 @@ extern int people_in_spodlist(void);
 extern int possible_move(player *, room *, int);
 extern int priv_for_log_str ( char * );
 extern int remove_player_file(char *);
+extern int reserved_name(char *);
 extern int restore_player(player *, char *);
 extern int restore_player_title(player *, char *, char *);
 extern int save_file(file *, char *);
@@ -100,6 +121,7 @@ extern int send_to_room(player *, char *, char *, int);
 extern int strnomatch(char *, char *, int);
 extern int test_receive(player *);
 extern int true_count_su(void);
+extern int unlogged_site(char *);
 extern list_ent *find_list_entry(player *, char *);
 extern list_ent *fle_from_save(saved_player *, char *);
 extern note *find_note(int);
@@ -108,21 +130,25 @@ extern player *create_player(void);
 extern player *find_player_absolute_quiet(char *);
 extern player *find_player_global(char *);
 extern player *find_player_global_quiet(char *);
+extern player *find_screend_player (char *);
 extern room *convert_room(player *, char *);
 extern room *create_room(player *);
 extern saved_player *find_saved_player(char *);
 extern saved_player *find_top_player(char, int);
-extern void ADDSTACK(char *,...);
-extern void AUWALL(char *,...);
-extern void AW_BUT(player *, char *,...);
-extern void ENDSTACK(char *,...);
-extern void HCWALL(char *,...);
-extern void LOGF(char *, char *,...);
-extern void SUWALL(char *,...);
-extern void SW_BUT(player *, char *,...);
-extern void TELLPLAYER(player *, char *,...);
-extern void TELLROOM(room *, char *,...);
-extern void TELLROOM_BUT(player *, room *, char *,...);
+extern ssize_t write_socket(int *, const void *, size_t);
+extern struct terminal terms[];
+extern void ADDSTACK(char *,...) VARG_END1
+extern void AUWALL(char *,...) VARG_END1
+extern void AW_BUT(player *, char *,...) VARG_END2
+extern void ENDSTACK(char *,...) VARG_END1
+extern void HCWALL(char *,...) VARG_END1
+extern void LOGF(char *, char *,...) VARG_END2
+extern void SEND_TO_DEBUG(char *,...) VARG_END1
+extern void SUWALL(char *,...) VARG_END1
+extern void SW_BUT(player *, char *,...) VARG_END2
+extern void TELLPLAYER(player *, char *,...) VARG_END2
+extern void TELLROOM(room *, char *,...) VARG_END2
+extern void TELLROOM_BUT(player *, room *, char *,...) VARG_END3
 extern void actual_timer(int);
 extern void add_to_spodlist(char *, int, float);
 extern void alive_connect(void);
@@ -153,6 +179,7 @@ extern void construct_mail_save(saved_player *);
 extern void construct_name_list(player **, int);
 extern void construct_room_save(saved_player *);
 extern void create_banish_file(char *);
+extern void debug_wall(char *);
 extern void decompress_alias(saved_player *);
 extern void decompress_item(saved_player *);
 extern void decompress_list(saved_player *);
@@ -179,6 +206,7 @@ extern void extract_pipe_local(char *);
 extern void finish_edit(player *);
 extern void fork_the_thing_and_sync_the_playerfiles(void);
 extern void free_room_data(saved_player *);
+extern void get_hardware_info(void);
 extern void get_post_data(player *, char *);
 extern void got_name(player * p, char *str);
 extern void handle_error(char *);
@@ -190,7 +218,7 @@ extern void hitells(player *, char *);
 extern void init_help(void);
 extern void help ( player *, char * );
 #ifdef IDENT
-extern void init_ident_server(void);
+extern int init_ident_server(void);
 extern void kill_ident_server(void);
 #endif
 extern void init_notes(void);
@@ -212,6 +240,7 @@ extern void make_reply_list(player *, player **, int);
 extern void make_resident(player *);
 extern void match_commands(player *, char *);
 extern void move_to(player *, char *, int);
+extern void newbie_was_screend (player *);
 extern void newfinger(player *, char *);
 extern void newsetpw0(player *, char *);
 extern void newsetpw1(player *, char *);
@@ -248,12 +277,13 @@ extern void sendtofile(char *, char *);
 extern void set_talker_addy (void);
 extern void set_update(char);
 extern void set_yes_session(player *, char *);
+void setup_itimer(void);
 extern void show_logs(player *, char *);
 extern void sing_shout (player *, char *);
 extern void snews_command(player *, char *);
 extern void soft_eject(player *, char *);
 extern void spodlist(void);
-extern void start_edit(player *, int, player_func *, player_func *, char *);
+extern void start_edit(player *, int, player_func *, player_func *, char *, int); /* EWE added int */
 extern void su_wall(char *);
 extern void su_wall_but(player *, char *);
 extern void sub_command(player *, char *, struct command *);
@@ -278,6 +308,7 @@ extern void to_room1(room *, char *, player *);
 extern void to_room2(room *, char *, player *, player *);
 extern void toggle_yes_dynatext(player *, char *);
 extern void trans_to(player *, char *);
+extern void unbanish(player *, char *);
 extern void view_session(player *, char *);
 extern void view_sub_commands(player *, struct command *);
 extern void warn(player *, char *);
@@ -313,6 +344,15 @@ extern void newexamine(player *, char *);
 extern void start_intercom(void);
 extern void kill_intercom(void);
 extern void pg_intercom_version(void);
+extern void do_intercom_room_enter_inform (player *);
+extern void do_intercom_room_exit_inform (player *);
+extern void intercom_channel_say(player *p, char *str);
+extern void intercom_channel_emote(player *p, char *str);
+extern void intercom_channel_action(player *p, char *str);
+extern void intercom_ichan_who(player *);
+extern void ppl_wall(char *str);
+extern void ichan_version(void);
+extern void send_to_intercom (player *, const char *,...);
 #endif
 
 #ifdef ROBOTS
@@ -322,9 +362,9 @@ extern void process_robot_counters(void);
 extern void trans_fn(player *, char *);
 #endif
 
-#ifdef REDHAT5
+#ifdef NEED_CRYPT_DECL
 extern char *crypt(const char *,const char *);
-#endif
+#endif /* NEED_CRYPT_DECL */
 
 /* These are all used for pg_version */
 extern void crashrec_version(void);
@@ -470,9 +510,9 @@ extern void         reboot_load_multis (void);
 
 #endif /* ALLOW_MULTIS */
 
-
-
-
+/* EWE */
+/* addition of code segment from sensi to support EWe:- numeric_s */
+extern char	    *numeric_s(int);
 
 
 
@@ -507,7 +547,7 @@ extern player **pipe_list;
 
 extern saved_player **saved_hash[];
 
-extern room    *comfy, *boot_room, *colony, *current_room, *entrance_room, 
+extern room    *comfy, *boot_room, *relaxed, *current_room, *entrance_room, 
                *prison;
 
 extern struct command check_list[], editor_list[], keyroom_list[], mail_list[],

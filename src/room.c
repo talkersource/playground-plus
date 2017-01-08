@@ -40,7 +40,6 @@ int decompress_room(room * r)
   if (!(r->flags & COMPRESSED))
     return 1;
 
-/*    printf("DEcompress key = %d, id = %s\n",r->data_key,r->id); */
   length = dynamic_load(room_df, r->data_key, stack);
   if (length <= 0)
   {
@@ -105,9 +104,10 @@ void compress_room(room * r)
 
   if (r->flags & COMPRESSED)
     return;
-  if (r->owner && r->owner->residency == STANDARD_ROOMS)
-    return;
-/*  printf("compress key = %d, id = %s\n",r->data_key,r->id); */
+
+   if (r->owner && r->owner->residency & SYSTEM_ROOM)
+     return;
+
   if (r->flags & ROOM_UPDATED)
   {
     if (r->text.where)
@@ -682,7 +682,7 @@ void check_room(player * p, char *str)
 
 void check_exits(player * p, char *str)
 {
-  char *exits, *scan, *oldstack, *text, *end;
+  char *exits, *scan, *oldstack, *text, *end, newid[80];
   int count = 0, fill = 0, temp = 0;
   room *r;
   oldstack = stack;
@@ -716,17 +716,24 @@ void check_exits(player * p, char *str)
   temp = count;
   for (scan = oldstack; count > 0; count--)
   {
-    r = convert_room_verbose(p, scan, 0);
-    if (!r && !strcasecmp(current_room->owner->lower_name, p->lower_name))
+    memset(newid, 0, 80);
+    if (!strchr(scan, '.'))	/* just id, no owner */
+      sprintf(newid, "%s.%s", current_room->owner->lower_name, scan);
+    else
+      strcpy(newid, scan);
+    r = convert_room_verbose(p, newid, 0);
+/*    r = convert_room_verbose(p, scan, 0); */
+    if (!r)
     {
       /*
        * erase a dud link (I hope)  mark=stack; stack=end;
        * remove_exit_verbose(p,scan,0); temp--; stack=mark;
        * stack=strchr(stack,0);
        */
-
-      sprintf(stack, " Found a dud link to '%s'.\n", scan);
-      stack = strchr(stack, 0);
+      if (!strcasecmp(current_room->owner->lower_name, p->lower_name))
+	stack += sprintf(stack, " Found a dud link to '%s'.\n", scan);
+      else
+	temp--;
     }
     else
     {
@@ -1417,6 +1424,8 @@ void look(player * p, char *str)
     /* omit room desc if argument is "-" */
     strcpy(stack, r->text.where);
     stack = strchr(stack, 0);
+    strcpy(stack, "^N");
+    stack = strchr(stack, 0);
   }
   if (count)
   {
@@ -1431,9 +1440,9 @@ void look(player * p, char *str)
       for (i = count; i; i--, list++)
       {
 	if (emote_no_break(*(*list)->title))
-	  sprintf(stack, "%s%s\n", (*list)->name, (*list)->title);
+	  sprintf(stack, "%s%s^N\n", (*list)->name, (*list)->title);
 	else
-	  sprintf(stack, "%s %s\n", (*list)->name, (*list)->title);
+	  sprintf(stack, "%s %s^N\n", (*list)->name, (*list)->title);
 	stack = strchr(stack, 0);
       }
   }
@@ -1582,6 +1591,10 @@ void move_to(player * p, char *str, int moveflag)
 
   if (old_room)
   {
+#ifdef INTERCOM
+    if (p->location==intercom_room)
+      do_intercom_room_exit_inform(p);
+#endif /* INTERCOM */
     scan = old_room->players_top;
     if (scan == p)
       old_room->players_top = p->room_next;
@@ -1655,6 +1668,10 @@ void move_to(player * p, char *str, int moveflag)
   if (p->custom_flags & SHOW_EXITS)
     check_exits(p, 0);
   current_player = old_current;
+#ifdef INTERCOM
+  if (p->location==intercom_room)
+    do_intercom_room_enter_inform(p);
+#endif /* INTERCOM */
 }
 
 
@@ -1683,16 +1700,16 @@ void trans_fn(player * p, char *str)
 
 /* go, the normal move command */
 
+
 void go_room(player * p, char *str)
 {
-  char *exits, *oldstack, *start;
+  char *exits, *oldstack = stack, *start, newid[80], *dotter;
 
   if (!*str)
   {
     tell_player(p, " Format: go <room>\n");
     return;
   }
-  oldstack = stack;
   if (!p->location)
   {
     tell_player(p, " Strange, you don't seem to be anyhwere.\n");
@@ -1701,16 +1718,15 @@ void go_room(player * p, char *str)
   exits = p->location->exits.where;
   if (!exits)
   {
-    tell_player(p, " Eek ! this place hasn't got any exits.\n");
+    tell_player(p, " There aren't any exits from this room.\n");
     return;
   }
   lower_case(str);
   while (*exits)
   {
     start = exits;
-    while (*exits != '.')
-      exits++;
-    exits++;
+    if ((dotter = strchr(exits, '.')))
+      exits = ++dotter;
     while (*exits != '\n')
       *stack++ = tolower(*exits++);
     *stack++ = 0;
@@ -1721,19 +1737,21 @@ void go_room(player * p, char *str)
   }
   if (!*exits)
   {
-    sprintf(oldstack, " Can't find exit '%s' to go through.\n", str);
-    stack = end_string(oldstack);
-    tell_player(p, oldstack);
+    TELLPLAYER(p, " Can't find exit '%s' to go through.\n", str);
     stack = oldstack;
     return;
   }
   while (*start != '\n')
     *stack++ = *start++;
   *stack++ = 0;
-  move_to(p, oldstack, 0);
+  if (!strchr(oldstack, '.'))
+    sprintf(newid, "%s.%s", p->location->owner->lower_name, oldstack);
+  else
+    strcpy(newid, oldstack);
+  move_to(p, newid, 0);
   sprintf(stack, "%s.%s", p->location->owner->lower_name, p->location->id);
-  if (!strcasecmp(oldstack, stack))
-    do_str_inform(p, oldstack);
+  if (!strcasecmp(newid, stack))
+    do_str_inform(p, newid);
   stack = oldstack;
 }
 
@@ -1824,7 +1842,7 @@ void init_room(char *name, file rf)
     strncpy(r->enter_msg, line, MAX_ENTER_MSG - 3);
     r->flags = OPEN | ROOM_UPDATED;
 
-    while (*(rf.where) != '#')
+    while (*(rf.where) && *(rf.where) != '#')
       if (*(rf.where) != '\r')
       {
 	*stack++ = *rf.where++;
@@ -1841,7 +1859,7 @@ void init_room(char *name, file rf)
     strcpy(r->text.where, oldstack);
     stack = oldstack;
     line = get_line(&rf);
-    while (strcasecmp(line, "end"))
+    while (line && *line && strcasecmp(line, "end"))
     {
       while (*line)
 	*stack++ = *line++;
@@ -1863,7 +1881,7 @@ void init_room(char *name, file rf)
     stack = oldstack;
 
     line = get_line(&rf);
-    while (strcasecmp(line, "end"))
+    while (line && *line && strcasecmp(line, "end"))
     {
       while (*line)
 	*stack++ = *line++;
@@ -1902,19 +1920,20 @@ void init_rooms()
   lf = load_file("files/system.rooms");
   init_room("system", lf);
   lf = load_file("files/main.rooms");
-  init_room("main", lf);
+  init_room(SYS_ROOM_OWNER, lf);
 #ifdef INTERCOM
   lf = load_file("files/intercom.rooms");
   init_room("intercom", lf);
   intercom_room = convert_room(stdout_player, "intercom.external");
 #endif
-  entrance_room = convert_room(stdout_player, ENTRANCE_ROOM);
+  entrance_room = convert_room(stdout_player, sys_room_id(ENTRANCE_ROOM));
   entrance_room->auto_base = 924;
   prison = convert_room(stdout_player, "system.prison");
-  colony = convert_room(stdout_player, "main.potty");
-  comfy = convert_room(stdout_player, "main.comfy");
-  comfy->flags |= (OPEN | LOCKED | CONFERENCE | ISOLATED_ROOM);
-  boot_room = convert_room(stdout_player, "main.boot");
+  relaxed = convert_room(stdout_player, sys_room_id(RELAXED_ROOM));
+  comfy = convert_room(stdout_player, sys_room_id("comfy"));
+  if (comfy)
+    comfy->flags |= (OPEN | LOCKED | CONFERENCE | ISOLATED_ROOM);
+  boot_room = convert_room(stdout_player, sys_room_id("boot"));
 
   if (sys_flags & VERBOSE)
     log("boot", "Common rooms loaded.");
@@ -1995,7 +2014,7 @@ void stack_where_string(player * p, player * test)
     }
     else
     {
-      sprintf(stack, " You find yourself %s\n", test->location->name);
+      sprintf(stack, " You find yourself %s^N\n", test->location->name);
     }
     stack = strchr(stack, 0);
     return;
@@ -2011,16 +2030,16 @@ void stack_where_string(player * p, player * test)
   sprintf(stack, "%s.%s", test->location->owner->lower_name,
 	  test->location->id);
 
-  if (!strcmp(stack, ENTRANCE_ROOM))
+  if (!strcmp(stack, sys_room_id(ENTRANCE_ROOM)))
     /* if they are in the main room */
   {
-    sprintf(stack, " %s is %s\n", namestring, test->location->name);
+    sprintf(stack, " %s is %s^N\n", namestring, test->location->name);
     stack = strchr(stack, 0);
     return;
   }
   if (test->location->owner == p->saved)
   {
-    sprintf(stack, " %s is %s\n", namestring, test->location->name);
+    sprintf(stack, " %s is %s^N\n", namestring, test->location->name);
     stack = strchr(stack, 0);
     return;
   }
@@ -2047,7 +2066,7 @@ void stack_where_string(player * p, player * test)
     stack = strchr(stack, 0);
     return;
   }
-  sprintf(stack, " %s is %s", namestring, test->location->name);
+  sprintf(stack, " %s is %s^N", namestring, test->location->name);
   stack = strchr(stack, 0);
   if (test->custom_flags & HIDING)
   {
@@ -2478,6 +2497,12 @@ void visit(player * p, char *str)
   saved_player *sp;
   player *p2;
   char *oldstack;
+
+  if (!str || !*str) /* Added this check -- blimey */
+  {
+    tell_player(p, " Format: visit <player>\n");
+    return;
+  }
   oldstack = stack;
 
   if (p->no_move)
@@ -2542,7 +2567,7 @@ void visit(player * p, char *str)
 
 void go_main(player * p, char *str)
 {
-  if (p->location && !strcmp(p->location->owner->lower_name, "main") &&
+  if (p->location && !strcmp(p->location->owner->lower_name, SYS_ROOM_OWNER) &&
       !(strcmp(p->location->id, "room")))
   {
     tell_player(p, " You are already in the main room.\n");
@@ -2553,12 +2578,7 @@ void go_main(player * p, char *str)
     tell_player(p, " You seem to be stuck to the ground\n");
     return;
   }
-  if (!strcmp(ENTRANCE_ROOM, stack))
-  {
-    tell_player(p, " You are already standing in the main room.\n");
-    return;
-  }
-  move_to(p, ENTRANCE_ROOM, 0);
+  move_to(p, sys_room_id(ENTRANCE_ROOM), 0);
 }
 
 
@@ -2744,7 +2764,7 @@ void end_room_edit(player * p)
 void room_edit(player * p, char *str)
 {
   start_edit(p, MAX_ROOM_SIZE, end_room_edit, quit_room_edit,
-	     current_room->text.where);
+	     current_room->text.where, 0);
   if (!p->edit_info)
     return;
   p->edit_info->misc = (void *) current_room;
@@ -2809,6 +2829,11 @@ void bounce(player * p, char *str)
   stack = end_string(oldstack);
   tell_room(p->location, oldstack);
 
+#ifdef INTERCOM
+  if (p->location==intercom_room)
+    do_intercom_room_exit_inform(p);
+#endif /* INTERCOM */
+
   /* find a random room */
   r = random_room();
 
@@ -2835,6 +2860,11 @@ void bounce(player * p, char *str)
     check_exits(p, 0);
 
   stack = oldstack;
+
+#ifdef INTERCOM
+  if (p->location==intercom_room)
+    do_intercom_room_enter_inform(p);
+#endif /* INTERCOM */
 }
 
 
@@ -2859,7 +2889,7 @@ int do_boot(player * p, player * booted)
   }
   command_type = 0;
   if ((!strcmp(r->owner->lower_name, "system")
-       || !strcmp(r->owner->lower_name, "main"))
+       || !strcmp(r->owner->lower_name, SYS_ROOM_OWNER))
       && ((p->residency & SU && !(sys_flags & EVERYONE_TAG))
 	  || p->residency & ADMIN)
       && check_privs(p->residency, booted->residency))
@@ -2884,13 +2914,13 @@ int do_boot(player * p, player * booted)
     stack = end_string(oldstack);
     tell_room_but(booted, (booted)->location, oldstack);
 
-    if (!strcmp(r->owner->lower_name, "main") && !strcmp(r->id, "boot"))
+    if (!strcmp(r->owner->lower_name, SYS_ROOM_OWNER) && !strcmp(r->id, "boot"))
     {
-      strcpy(oldstack, ENTRANCE_ROOM);
+      strcpy(oldstack, sys_room_id(ENTRANCE_ROOM));
     }
     else
     {
-      strcpy(oldstack, "main.boot");
+      strcpy(oldstack, sys_room_id("boot"));
     }
 
     stack = end_string(oldstack);
@@ -2933,7 +2963,7 @@ int do_boot(player * p, player * booted)
 	  (booted)->name, p->name);
   stack = end_string(oldstack);
   tell_room_but(booted, (booted)->location, oldstack);
-  trans_to(booted, ENTRANCE_ROOM);
+  trans_to(booted, sys_room_id(ENTRANCE_ROOM));
   sprintf(oldstack, " %s dusts %sself down after getting booted.\n",
 	  (booted)->name, get_gender_string(booted));
   stack = end_string(oldstack);
@@ -3660,42 +3690,14 @@ void set_login_room(player * p, char *str)
 
 void barge(player * p, char *str)
 {
-  char *oldstack;
-  room *to;
-
-  oldstack = stack;
+  if (!str || !*str) /* added this check -- blimey */
+  {
+	tell_player(p, " Format: barge <player> | <someone.some-room-id>\n");
+	return;
+  }
   command_type |= ADMIN_BARGE;
   if (strchr(str, '.'))
-  {
-    if ((to = convert_room_verbose(p, str, 0)))
-    {
-      if (p->exitmsg[0])
-      {
-	if (emote_no_break(*p->exitmsg))
-	  sprintf(stack, " %s%s\n", p->name, p->exitmsg);
-	else
-	  sprintf(stack, " %s %s\n", p->name, p->exitmsg);
-      }
-      else
-      {
-	if (emote_no_break(*to->enter_msg))
-	  sprintf(stack, " %s%s\n", p->name, to->enter_msg);
-	else
-	  sprintf(stack, " %s %s\n", p->name, to->enter_msg);
-      }
-      stack = end_string(stack);
-      tell_room(p->location, oldstack);
-      stack = oldstack;
-      trans_to(p, str);
-      if (emote_no_break(*p->enter_msg))
-	sprintf(stack, " %s%s\n", p->name, p->enter_msg);
-      else
-	sprintf(stack, " %s %s\n", p->name, p->enter_msg);
-      stack = end_string(stack);
-      tell_room(p->location, oldstack);
-      stack = oldstack;
-    }
-  }
+    trans_fn(p, str); /* removed repeated code and made this one call -- blimey */
   else if (find_saved_player(str))
     visit(p, str);
   else
@@ -3792,4 +3794,12 @@ void all_players_out(saved_player * sp)
 	move_to(p, "system.void", 0);
     }
   }
+}
+char *sys_room_id(char *which)
+{
+  static char buf[160];
+
+  memset(buf, 0, 160);
+  sprintf(buf, "%s.%s", SYS_ROOM_OWNER, which);
+  return buf;
 }

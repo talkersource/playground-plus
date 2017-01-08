@@ -1,0 +1,6 @@
+MF_DATE="20.06.1998"
+MF_OS="Irix"
+MF_AUTHOR="Unknown"
+MF_OS_CFLAGS="-DIRIX"
+MF_LIBS=""
+

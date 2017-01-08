@@ -99,10 +99,6 @@ dfile *dynamic_init(char *fil, int granularity)
 
   if (fd < 0)
   {
-
-    sprintf(oldstack, "Failed to load '%s' keys (creating)", df->fname);
-    stack = end_string(oldstack);
-    log("error", oldstack);
     stack = oldstack;
     df->first_free_block = 0;
     df->first_free_key = 0;
@@ -183,16 +179,14 @@ int load_block(dfile * df, int *block, char *data)
 int dynamic_load(dfile * df, int key, char *data)
 {
   int block, length, l;
-/*  printf("Dynamic load key=%d\n",key);  */
+
   if (!convert_key(df, key, &block, &length))
     return -1;
   l = length;
-/*    printf("DL block %d\n",block);  */
   while (l > 0)
   {
     if (!load_block(df, &block, data))
       handle_error("Failed to load block of data");
-/*    printf("DL block %d\n",block);  */
     l -= (df->granularity - 4);
     data += (df->granularity - 4);
   }

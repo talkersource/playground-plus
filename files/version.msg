@@ -1,6 +1,6 @@
 ------------------------------- New Code ----------------------------------
 
-Welcome to Playground+ version 1.0
+Welcome to Playground+ version 1.0.10
 
 Below is a list of additional things that have been added, bug fixed or
 changed since Playground v5.0.0 in no particular order:
@@ -144,6 +144,7 @@ changed since Playground v5.0.0 in no particular order:
 - Allowed admin to kill the angel from within the talker
 - Cleaned up format of mail postings
 - Added "mail readsent" code
+  -- 1.0.1 --
 - Support for the always-seen-but-never-used sys_flags & VERBOSE is
     included as an option in the Makefiles - horay!
 - Fixed missing prompts when logging in bug when using Tinyfugue
@@ -174,6 +175,152 @@ changed since Playground v5.0.0 in no particular order:
     me :o)
 - Added "average logins per hour and day" to time since most people seem
     to be adding the former to their code these days.
-- Added patch to fix double clock triggering on servers with dodgy clock
-    (talker.com)
+ -- 1.0.2 --
+- enhanced lsr, added nice privs output line string for other calls
+- enhanced dynatext to be able to refer to current_player, output player,
+    random player in room, and random player on talker
+- added newbie screening
+- fixed stack bug in pinfo
+- fixed missing #ifdef IDENT in link_to_program
+- fixed birthday to take the format for time set in soft config
+- fixed intercom examine and finger when informing
+- fixed display bug on liblist
+- fixed display bug on idle
+- fixed display bug on nwho
+- added 'uname' stat to version
+- fixed rename log bug
+- enhanced banish_player
+ -- 1.0.3 --
+- got rid of STANDARD_ROOMS residency define ....it was never actually 
+    Set anywhere within the code..only checked for....it would Always 
+    be nonexistant......
+- fixed newbie screening bug
+- fixed dud links to show only to room owner
+- added aliases "adpost", "adnews", and "adread" for admin news group
+- added log "ammend" command
+- fixed IN_EDITOR bug
+- added errors shown on varible argument functions with wrong format
+- fixed obscure social bug
+- fixed "help drugs" helpfile
+- fixed display log for newconn
+- fixed item delete bug
+- fixed color bleed in various functions
+- enhanced netstat (again)
+- added "psx" to view process stats online
+- added soft config for sus to recap others
+- fixed blankpass, totally rewritten
+- enhanced rooms, exits default to owner if not in format owner.id
+- fixed small bugs in res_count
+- enhanced bug and idea to echo the text back to the player
+- added logging of failed help file requests
+- fixed bug in multis when used as an alias
+- fixed display bug in time when talker was up less than an hour
+- added "blank_alias"
+- added "fix_list"
+- added ^^X and ^^x for random color
+- added -f option to "reboot" to force it (even if others in editor)
+ -- 1.0.4 --
+- fixed color bleed when player did not have term info (mainly login screen)
+- fixed debug priv incompatiblity
+- fixed boot 'typo', missing sys_room_id call
+- fixed news id problem for ppl posting at the same time
+- fixed mail overflow bug
+ -- 1.0.5 --
+- added expandable search engine, fixes possible bugs in itrace/etrace,
+    adds extra functionality for searching files
+- fixed admin channel shortcuts availble to everyone
+- fixed recap bug allowing anyone to recap anyone if sus_can_recap on
+- fixed color bleed on 'where' with colored room names
+- fixed fingering bug for show_when_xed at login
+- prevented talker from booting if soft config files missing
+- cleaned up log(), default log size if possibly missing
+ -- 1.0.6 --
+- fixed major legacy bug, user exploitable from suicide
+ -- 1.0.7 --
+- fixed many typographical errors and possible pfile corruption problems
+ -- 1.0.8 --
+- prevented talker being rebooted when in 'autoshutdown' mode
+- prevented 'news followup' from showing previous private messages
+- made intercom able to handle talkers with dynamic ip addresses
+- removed several stack problems
+- allowed users to use capitals in 'spods' command
+ -- 1.0.9 --
+- intercom fixed to prevent trailing ^^M's
+- users password are accidently logged in a crash
+- compilation flags corrected for redhat 5
+- trailing . in the 'time' command removed
+- gitting newbies used to make them residents, but not anymore
+- socket code bug which meant that sigpipes could kill the talker fixed
+ -- 1.0.9.5 --
+- fixed intercom bug which caused talkers to report themselves as "error"
+ -- 1.0.10 --
+- new configure scripts (easier to use and copes with more systems)
+- intercom updated (now supports talkers on dynamic servers + more)
+- ichan updated (to account for intercom update)
+- ident server updated
+- multis updated
+- dynatext updated
+- New editor (EWE) written by Slaine replaces old code
+- rewrote remove_shout and remove_sing because they were broken
+- bug in the logging of nukes fixed
+- blocking of proposals bug fixed
+- Y2K fixes to prevent warnings in logging code
+- REDHAT5 define removed for new configure code
+- large chunks of code defined as #ifdef NULLcode removed
+- check_info cleaned up and bug fixed
+- scandir warnings on later gcc versions fixed
+- alias bug fixed, long aliases won't corrupt pfiles
+- you can't used "quit" in a logon/off/recon alias
+- trailing } missing in aliases doesn't cause code to wibble
+- cleaner asset code
+- passwords are masked in the logs if they cause the talker to crash
+- "change_command_privs" command enabled
+- "amend" command spellchecked (but alias to "ammend" is there)
+- newbies can report bugs
+- "fwho" is given the correct permissions (LIST and not anyone)
+- hcadmin channel emote and say added (oops)
+- "kill_multi" command allows you to do just that
+- "rm_multi" allows users to remove themselves off a multi
+- favourites code cleaned up
+- long email addresses won't corrupt pfiles
+- timelocal definitions handled by configure scripts
+- "Failed to load" warnings removed since they weren't really a problem
+- dynatext has new elements - p, s, P and S
+- Finger from login bug fixed (allowed people to see hidden emails addys)
+- realm.progsoc.uts.edu.au removed from unlogged sites (virtual worlds no
+  longer runs)
+- getting the inventory of a non-resident bug fixed
+- "last" command cleaned up
+- list flag setting/removing/toggling bug fixed
+- using "colourize default" resets your colourset to the defaults
+- "list_all_notes" command is available
+- blockfriends bug within multis is fixed
+- news articles can be toggled sticky or not (rather than just set to
+  sticky)
+- random disappearing tells bug fixed (woo!)
+- swearing using converse mode won't bypass the swear filter
+- peoples longest log in time isn't clipped to 1 day
+- help bug which allowed people to see help on stuff they didn't have
+  fixed
+- dynamic saved channels are now actually saved with the pfile
+- newbies wont see the motd twice upon login
+- if newbies set their terminal to "none" upon login, it isn't changed to 
+  vt100
+- ident server doesn't get confused with reconnecting people
+- you are prevented with having colour login screens
+- autoshutdown turned off won't cause compile problems
+- room checks for (de)compression patched
+- people see others entering the intercom room
+- new "visit" and "barge" commands
+- "edit_social" and "rename_social" commands added
+- process_output bug fixed which caused problems with users of tinyfugue
+- pstack_mid code uses line patterns set by the LINE define
+- "tell_room" code doesn't corrupt prompt and force a reboot (was broken)
+- colour bleed on logon and logoff messages removed
+- talker can still be booted with corrupt system rooms
+- if you change the port number on the fly the intercom will announce the
+  port change to other connected talkers to avoid database spam
+
+**** Final Playground Plus release - 10th December 1999
+
 ---------------------------------------------------------------------------

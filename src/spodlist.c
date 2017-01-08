@@ -11,14 +11,14 @@
  *  You may not distribute this code in any form other than within the
  *  code release PG+. You may only distribute it in a successor of PG+
  *  with express consent in writing from Silver (Richard Lawrence)
- *  <silver@whiting.co.uk>
+ *  <silver@ewtoo.org>
  *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef BSDISH
+#ifndef BSDISH
 #include <malloc.h>
 #endif
 
@@ -147,7 +147,6 @@ void calc_spodlist(void)
       {
 	switch (scanlist->residency)
 	{
-	  case STANDARD_ROOMS:
 	  case BANISHED:
 	  case SYSTEM_ROOM:
 	  case BANISHD:
@@ -165,9 +164,9 @@ void calc_spodlist(void)
 	    /* If defined, don't put robots on the spodlist */
 
 #ifdef ROBOTS
-	    if (strcasecmp(p2->name, chk) && !(p2->residency & ROBOT_PRIV))
+            if (strcasecmp(p2->name, chk) && !(p2->residency & ROBOT_PRIV))
 #else
-	    if (strcasecmp(p2->name, chk))
+            if (strcasecmp(p2->name, chk) && !(p2->residency & BANISHD))
 #endif
 	    {
 	      strcpy(chk, p2->name);
@@ -278,6 +277,6 @@ void show_spodlist(player * p, char *str)
 
 void spodlist_version(void)
 {
-  sprintf(stack, " -=*> Dynamic spodlist v1.0 (by Silver) enabled.\n");
+  sprintf(stack, " -=*> Dynamic spodlist v1.0 (by Silver) installed.\n");
   stack = strchr(stack, 0);
 }

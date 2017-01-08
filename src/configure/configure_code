@@ -1,0 +1,48 @@
+##########################################################################
+#
+# Playground Plus configuration script
+# copyright (c) Richard Lawrence 1999
+#
+# This script is distributed for and ONLY for the Playground Plus package. 
+# It may not be used in any other distribution without the prior permission
+# of the author. No reply to your request does NOT constitute permission.
+#
+##########################################################################
+
+# configure_code
+# the code configuration part
+# by Richard 'Silver' Lawrence
+
+PG_VERSION=`egrep "\#define PG_VERSION" include/config.h | cut -d"\"" -f2`
+
+flag=0
+
+clear
+
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ CODE OPTIONS
+
+ This script will allow you to select which options you will have enabled
+ on your talker. These options are not final, you can change them at any
+ time by rerunning "make config".
+
+ You can use "?" to gain help on the option. If you don't know then its
+ probably best to go with the default (the option in capitals).
+
+*END*
+
+bash configure/Configure configure/Configure.options
+
+make depend
+
+if [ ! -f ../bin/talker ]
+then
+  # its their first ever install!
+  bash configure/configure_softmsg
+  exit
+fi
+

@@ -14,7 +14,7 @@
 
 #ifdef ALLOW_MULTIS
 
-#define MULTI_VERSION "1.00.1"
+#define MULTI_VERSION "1.30.2"
 
 #include "include/player.h"
 #include "include/proto.h"
@@ -187,6 +187,7 @@ void tell_multi(int number, player * p, char *str)
 
     while (pscan)
     {
+      sys_color_atm = curr_sys_col;
       curr_mode = command_type;
       if ((pscan->the_player) && (pscan->the_player->tag_flags & BLOCK_MULTIS))
       {
@@ -197,7 +198,8 @@ void tell_multi(int number, player * p, char *str)
 		     pscan->the_player->name);
 	command_type = curr_mode;
       }
-      else if ((pscan->the_player) && (pscan->the_player->tag_flags & BLOCK_FRIENDS))
+      else if (pscan->the_player && 
+              ((pscan->the_player->tag_flags & BLOCK_FRIENDS) && (mscan->multi_flags & MULTI_FRIENDSLIST)))
       {
 	command_type = 0;
 	sys_color_atm = SYSsc;
@@ -221,7 +223,7 @@ void tell_multi(int number, player * p, char *str)
 	{
 	  if (pscan->the_player)
 	  {
-	    if (p && !(command_type & ECHO_COM))
+	    if (p && !(command_type & (ECHO_COM | REMOVE_COM)))
 	    {
 	      if (is_emote && emote_no_break(*str))
 	      {
@@ -295,7 +297,7 @@ void vtell_multi(int number, player * p, char *format,...)
   stack = oldstack;
 }
 
-multi *remove_multi(multi * m1, multi * m2, char *reason)
+multi *remove_multi_player(player *pc, multi * m1, multi * m2, char *reason)
 {
   multi *m3 = m1->next_multi;
   multiplayer *p, *n;
@@ -303,8 +305,10 @@ multi *remove_multi(multi * m1, multi * m2, char *reason)
   if (!m1)
     return (multi *) 0;
 
+  command_type |= REMOVE_COM;
   if (config_flags & cfMULTI_INFORM)
-    vtell_multi(m1->number, NULL, "Multi removed%s\n", reason);
+    vtell_multi(m1->number, pc, "Multi removed%s\n", reason);
+  command_type &= ~REMOVE_COM;
 
   if (m2)
     m2->next_multi = m3;
@@ -323,6 +327,11 @@ multi *remove_multi(multi * m1, multi * m2, char *reason)
   if (m2)
     return (m2->next_multi);
   return m3;
+}
+
+multi *remove_multi(multi *m1, multi *m2, char *reason)
+{
+  return remove_multi_player(NULL, m1, m2, reason);
 }
 
 void update_multis(void)
@@ -648,6 +657,40 @@ void multi_number_to_names(player * p, int number, char *str)
   str = oldstr;
 }
 
+int multi_exists(multi *m)
+{
+  multi *scan = all_multis;
+  multiplayer *pscan = NULL;
+  int exists = 0, count = players_on_multi(m), count2;
+
+  while (scan)
+  {
+    if (scan->multi_flags & MULTI_FRIENDSLIST)
+      continue;
+
+    if (players_on_multi(scan) == count)
+    {
+      count2 = 0;
+      pscan = scan->players_list;
+      while (pscan)
+      {
+        if (player_on_multi(pscan->the_player, m))
+          count2++;
+        else
+          break;
+        pscan = pscan->next_player;
+      }
+      if (count == count2)
+      {
+        exists = scan->number;
+        break;
+      }
+    }
+    scan = scan->next_multi;
+  }
+  return exists;
+}
+
 int solve_multi(player * p, char *str)
 {
   char *endp, *start, *oldstack = stack;
@@ -669,22 +712,26 @@ int solve_multi(player * p, char *str)
       if (*endp)
       {
 	tell_player(p, "Please enter a correct multi number\n");
+        stack = oldstack;
 	return -1;
       }
       mnew = find_multi_from_number(mn);
       if (!mnew)
       {
 	tell_player(p, "That multi does not exist\n");
+        stack = oldstack;
 	return -1;
       }
       if (!(player_on_multi(p, mnew)))
       {
 	tell_player(p, "You're not on that multi\n");
+        stack = oldstack;
 	return -1;
       }
       if (mnew->multi_flags & MULTI_FRIENDSLIST)
       {
 	tell_player(p, "You can't add people to friends multis\n");
+        stack = oldstack;
 	return -1;
       }
       stack = start;
@@ -763,7 +810,13 @@ int solve_multi(player * p, char *str)
       stack = start;
     }
     mnew->multi_flags &= ~MULTI_NOIDLEOUT;
-    all_multis = mnew;
+    if (!multi_exists(mnew))
+      all_multis = mnew;
+    else
+    {
+      mn = multi_exists(mnew);
+      FREE(mnew);
+    }
   }
   else
   {
@@ -1011,7 +1064,7 @@ void multi_yell(player * p, char *str, char *msg)
     if (m->players_list->the_player == p)
       TELLPLAYER(p, "(%d) You %s your friends '%s'\n", mn, mid, msg);
     else
-      TELLPLAYER(p, "(%d) You %s %s'%s friends '%s'\n", mn, mid,
+      TELLPLAYER(p, "(%d) You %s %s's friends '%s'\n", mn, mid,
 		 m->players_list->the_player->name, msg);
   }
   else
@@ -1294,6 +1347,91 @@ void multi_idle(player * p, char *str)
 
   TELLPLAYER(p, " That multi has been idle for %s\n", word_time(m->multi_idle));
 }
+
+void multi_kill(player *p, char *str)
+{
+  multi *the_multi = NULL, *mscan = NULL, *mprev = NULL;
+  int i;
+  char *c = NULL, reason[80];
+
+  if (!(*str))
+    i = find_friend_multi_number_name(p->name);
+  else if (!(p->residency & ADMIN))
+  {
+    tell_player(p, " Format: kill_multi <multi number>\n");
+    return;
+  }
+  else
+  {
+    i = (int) strtol(str, &c, 10);
+    if (i < 1 || i > 1024 || (c && *c))
+    {
+      tell_player(p, " That is not a legal multi number.\n");
+      return;
+    }
+  }
+
+  the_multi = find_multi_from_number(i);
+  if (!the_multi)
+  {
+    if (*str)
+      tell_player(p, " That multi doesn't even exist!\n");
+    else
+      tell_player(p, " You don't have a friends multi to kill.\n");
+    return;
+  }
+  mscan = all_multis;
+  while (mscan != the_multi)
+  {
+    mprev = mscan;
+    mscan = mscan->next_multi;
+  }
+  strcpy(reason, "");
+  if (*str)
+    sprintf(reason, " by %s", p->name);
+  else
+    sprintf(reason, " by owner");
+  (void) remove_multi_player(p, mscan, mprev, reason);
+  tell_player(p, " You've removed the multi\n");
+}
+
+void multi_remove(player *p, char *str)
+{
+  int i;
+  multi *the_multi = NULL;
+  char *c;
+
+  if (!str || !*str)
+  {
+    tell_player(p, " Format: rm_multi <number of multi>\n");
+    return;
+  }
+
+  i = (int) strtol(str, &c, 10);
+  if (i < 1 || i > 1024 || (c && *c))
+  {
+    tell_player(p, " That is not a legal multi number.\n");
+    return;
+  }
+
+  the_multi = find_multi_from_number(i);
+  if (!the_multi)
+  {
+    tell_player(p, " You aren't even on that multi!\n");
+    return;
+  }
+
+  if (!player_on_multi(p, the_multi))
+  {
+    tell_player(p, " You aren't even on that multi!\n");
+    return;
+  }
+
+  remove_from_multi(p, the_multi);
+  vtell_multi(i, NULL, "%s removes %s from the multi\n", p->name, self_string(p));
+  tell_player(p, " You removed yourself from the multi.\n");
+}
+
 
 void multis_version(void)
 {

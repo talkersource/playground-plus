@@ -1,0 +1,11 @@
+#
+# object_exclusions
+#
+# This file simply contains the list of any objects that *shouldn't*
+# be included as part of the talker binary.
+#
+# This is because the script isn't clever enough to tell whether some
+# objects should be included as part of the talker binary without making
+# broad assumptions.
+#
+intercom2.c

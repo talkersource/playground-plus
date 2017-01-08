@@ -450,7 +450,7 @@ void report_idea(player * p, char *str)
     tell_player(p, " Please make it a little smaller.\n");
     return;
   }
-  tell_player(p, " Idea logged, thank you.\n");
+  TELLPLAYER(p, "%s%s\n%s ... logged as idea, thank you.\n", LINE, str, LINE);
   LOGF("idea", "%s - %s ", p->name, str);
   SW_BUT(p, " -=*> Idea log from %s: %s\n", p->name, str);
 }
@@ -480,7 +480,8 @@ void report_error(player * p, char *str)
   if (spacer)
     *spacer = ' ';
 
-  tell_player(p, " Your bug report has been logged, and will be looked into by an admin soon.\n");
+  TELLPLAYER(p, "%s%s\n%s ... logged as a bug, thanks for your time\n",
+	     LINE, str, LINE);
   LOGF("bug", "%s: %s", p->name, str);;
   SW_BUT(p, " -=*> Bug log from %s: %s\n", p->name, str);
 }

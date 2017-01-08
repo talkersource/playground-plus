@@ -11,7 +11,7 @@
 #include "player.h"
 #endif
 
-#define INTERCOM_VERSION "1.1.1"
+#define INTERCOM_VERSION "1.1.6"
 #define INTERCOM_STACK 20480
 
 #define COLOUR_TERMINATOR "^N"
@@ -45,6 +45,7 @@ typedef struct _talker_list
   char name[MAX_TALKER_NAME];
   char abbr[MAX_TALKER_ABBR];
   char addr[MAX_INET_ADDR];
+  char dynamic[MAX_INET_ADDR];
   int num[4];
   int port;
   int fd;
@@ -134,7 +135,17 @@ typedef struct _nameban
 #define INTERCOM_ROOM_LOOK 50
 #define INTERCOM_ROOM_LIST 51
 #define WE_ARE_MOVING 52
+#define USER_ACTION 53
+#define USE_DYNAMIC 54
 /*RESERVED ALL VALUES UP TO &inc 100 FOR CENTRAL INTERCOM DEVELOPMENT*/
+#define ICHAN_MESSAGE 102
+#define INTERCOM_ICHAN_WHO 103
+#define INTERCOM_ICHAN_LIST 104
+#define COMMAND_UPDATE 105
+
+/*User actions*/
+#define ENTER_ROOM 1
+#define LEAVE_ROOM 2
 
 /*RESERVED ALL VALUES ABOVE 0xEF FOR CENTRAL DEVELOPMENT*/
 #define END_MESSAGE (0xFE)
@@ -154,6 +165,10 @@ typedef struct _nameban
 #define COMMAND_SAY 11
 #define COMMAND_EMOTE 12
 /*RESERVED ALL VALUES UP TO 100 FOR CENTRAL INTERCOM DEVELOPMENT*/
+
+#define ICHAN_SAY 101
+#define ICHAN_EMOTE 102
+#define ICHAN_ACTION 103
 
 /*List codes*/
 #define LIST_ALL 1
@@ -183,6 +198,7 @@ typedef struct _nameban
 #define HELLO_AFTER_CONNECT (1<<1)
 #define INVIS (1<<2)
 #define VALIDATE_AFTER_CONNECT (1<<3)
+#define FIRST_CONTACT (1<<4)
 /*RESERVED ALL VALUES UP TO (1<<25) FOR CENTRAL INTERCOM DEVELOPMENT*/
 
 #endif

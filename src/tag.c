@@ -519,6 +519,7 @@ void cleanup_tag(player ** tagged_list, int matches)
 char *name_string(player * p, player * tagged)
 {
   if (tagged == current_player)
+  {
     if (p == current_player)
       return "yourself";
     else
@@ -537,6 +538,7 @@ char *name_string(player * p, player * tagged)
 	  return "herself";
 	  break;
       }
+  }
   if (tagged == p)
     return "you";
   return tagged->name;
@@ -702,7 +704,7 @@ int global_tag(player * p, char *tag_str)
     entry = p->saved->list_top;
     while (entry)
     {
-      if (entry->flags & FRIEND && entry->name != "everyone")
+      if (entry->flags & FRIEND && strcasecmp(entry->name, "everyone"))
       {
 	tag = find_player_absolute_quiet(entry->name);
 	if (tag && tag->location)
@@ -761,7 +763,7 @@ int global_tag(player * p, char *tag_str)
     l = find_list_entry(o, p->name);
     if (!l || !l->flags & FRIEND || l->flags & NO_FACCESS_LIST)
     {
-      tell_player(p, " That person's list is inaccessable to you.\n");
+      tell_player(p, " That person's list is inaccessible to you.\n");
       return 0;
     }
     if (o->tag_flags & BLOCK_FRIENDS)
@@ -771,7 +773,7 @@ int global_tag(player * p, char *tag_str)
     }
     if (o->tag_flags & NO_FACCESS)
     {
-      tell_player(p, " That person's list is inaccessable.\n");
+      tell_player(p, " That person's list is inaccessible.\n");
       return 0;
     }
     sys_flags |= OFRIEND_TAG;
@@ -779,7 +781,7 @@ int global_tag(player * p, char *tag_str)
     entry = o->saved->list_top;
     while (entry)
     {
-      if (entry->flags & FRIEND && entry->name != "everyone")
+      if (entry->flags & FRIEND && strcasecmp(entry->name, "everyone"))
       {
 	tag = find_player_absolute_quiet(entry->name);
 	if (tag && tag->location)
@@ -1577,25 +1579,70 @@ void qwho(player * p, char *str)
 
 /* put something in the middle of the screen */
 
+int add_cycle(int current, int max)
+{
+  current++;
+  if (current >= max)
+    current = 0; 
+  return current;
+}
+
 void pstack_mid(char *str)
 {
-  int half, n;
+  int half, pos = 0, width = 75, linelen, n;
 
-  half = (70 - strlen(str)) >> 1;
+  /* if there is a current player then we'll assume that
+     they are going to look at this output. You may find
+     that this might not work in some cases */
+
+  if (current_player)
+  {
+    width = current_player->term_width - 4;
+    if (width <= 0)  /* if its a stupidly small value */
+      width = 75;  /* set it to something more reasonable */  
+  }
+
+  if (width < strlen(str)) /* if text is longer than wrap */
+    width = 75;  /* fudge it */
+
+  /* find halfway position and length of LINE define */
+
+  half = (width - (strlen(str) + 2)) / 2;
+  linelen = strlen(LINE);
+  
+  /* display the bit before the text */
 
   for (n = 0; n < half; n++)
   {
-    *stack++ = '-';
+    *stack++ = LINE[pos];
+    pos = add_cycle(pos, linelen);
   }
+  
+  /* the space, not forgetting to cycle our line position otherwise
+     the symbols won't line up with the standard LINE */
+
   *stack++ = ' ';
+  pos = add_cycle(pos, linelen);  
+  
+  /* our text */
+
   for (n++; *str; n++)
   {
     *stack++ = *str++;
+    pos = add_cycle(pos, linelen);  
   }
+  
+  /* another space */
+
   *stack++ = ' ';
-  for (n++; n < 75; n++)
+  pos = add_cycle(pos, linelen);  
+  
+  /* last part */
+
+  for (n++; n < width; n++)
   {
-    *stack++ = '-';
+    *stack++ = LINE[pos];
+    pos = add_cycle(pos, linelen);
   }
   *stack++ = '\n';
 }
@@ -1655,9 +1702,9 @@ void who(player * p, char *str)
     if (scan->name[0] && scan->location)
     {
       if (emote_no_break(*scan->title))
-	sprintf(stack, "%s%s\n", scan->name, scan->title);
+	sprintf(stack, "%s%s^N\n", scan->name, scan->title);
       else
-	sprintf(stack, "%s %s\n", scan->name, scan->title);
+	sprintf(stack, "%s %s^N\n", scan->name, scan->title);
       stack = strchr(stack, 0);
       count++;
     }
@@ -1682,6 +1729,17 @@ void twho(player * p, char *str)
     p->custom_flags &= ~YES_SESSION;
 }
 
+player *find_screend_player(char *str)
+{
+  player *scan;
+
+  for (scan = flatlist_start; scan; scan = scan->flat_next)
+    if (!strcasecmp(scan->name, str) &&
+	scan->input_to_fn == newbie_dummy_fn)
+      return scan;
+
+  return (player *) NULL;
+}
 
 
 

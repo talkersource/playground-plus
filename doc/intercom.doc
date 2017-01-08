@@ -82,6 +82,13 @@ delete_server      - This completely deletes a server from the database. Note
                     intercom delete_server elsewhere
                   
 
+dynamic            - This command will indicate to others that you are using
+                    a dynamic IP address. Use it to supply them with a static
+                    DNS address, so your talker doesnt continually get
+                    refused connections to other sites. An example is:
+
+                    intercom dynamic mytalker.dyn.ml.org
+
 
 lsu                - This is NOT an intercom subcommand. Superusers only
                     have the ability to view the SU list on remote talkers.
@@ -153,6 +160,11 @@ update_servers     - This requests a list of every talker that every talker
                     as it is very high bandwidth. An example of this is:
 
                     intercom update servers
+
+                    An alternative version simply requests the list from just
+                    one talker you are connected to. For example:
+
+                    intercom update_servers fh
 
 
 NOTE: Many of the command syntaxes are : separated.This is to allow spaces

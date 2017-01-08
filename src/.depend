@@ -12,10 +12,10 @@ $(OBJECT_LOCATION)/admin.o: admin.c /usr/include/string.h /usr/include/features.
  /usr/include/posix_opt.h /usr/include/confname.h \
  /usr/include/signal.h /usr/include/sigset.h /usr/include/signum.h \
  /usr/include/sigaction.h /usr/include/sigcontext.h \
- /usr/include/asm/sigcontext.h include/config.h include/root.h \
- include/autoconfig.h include/player.h /usr/include/sys/time.h \
- include/robot_player.h include/admin.h include/proto.h \
- include/dynamic.h
+ /usr/include/asm/sigcontext.h /usr/include/sigstack.h \
+ include/config.h include/root.h include/autoconfig.h include/player.h \
+ /usr/include/sys/time.h include/robot_player.h include/admin.h \
+ include/proto.h include/dynamic.h
 $(OBJECT_LOCATION)/admin2.o: admin2.c /usr/include/string.h /usr/include/features.h \
  /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stddef.h \
@@ -69,14 +69,15 @@ $(OBJECT_LOCATION)/angel.o: angel.c /usr/include/stdio.h /usr/include/libio.h \
  /usr/include/waitflags.h /usr/include/waitstatus.h \
  /usr/include/signal.h /usr/include/sigset.h /usr/include/signum.h \
  /usr/include/sigaction.h /usr/include/sigcontext.h \
- /usr/include/asm/sigcontext.h /usr/include/sys/socket.h \
- /usr/include/socketbits.h /usr/include/sockaddrcom.h \
- /usr/include/asm/socket.h /usr/include/asm/sockios.h \
- /usr/include/sys/un.h /usr/include/sys/ioctl.h /usr/include/ioctls.h \
+ /usr/include/asm/sigcontext.h /usr/include/sigstack.h \
+ /usr/include/sys/socket.h /usr/include/socketbits.h \
+ /usr/include/sockaddrcom.h /usr/include/asm/socket.h \
+ /usr/include/asm/sockios.h /usr/include/sys/un.h \
+ /usr/include/sys/ioctl.h /usr/include/ioctls.h \
  /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h \
- /usr/include/linux/sockios.h /usr/include/ioctl-types.h \
- /usr/include/sys/ttydefaults.h include/config.h include/root.h \
- include/autoconfig.h xstring.c /usr/include/ctype.h
+ /usr/include/ioctl-types.h /usr/include/sys/ttydefaults.h \
+ include/config.h include/root.h include/autoconfig.h xstring.c \
+ /usr/include/ctype.h
 $(OBJECT_LOCATION)/anti-crash.o: anti-crash.c /usr/include/setjmp.h \
  /usr/include/features.h /usr/include/sys/cdefs.h \
  /usr/include/gnu/stubs.h /usr/include/jmp_buf.h /usr/include/sigset.h
@@ -257,8 +258,8 @@ $(OBJECT_LOCATION)/glue.o: glue.c /usr/include/sys/types.h /usr/include/features
  /usr/include/asm/resource.h /usr/include/ctype.h \
  /usr/include/signal.h /usr/include/sigset.h /usr/include/signum.h \
  /usr/include/sigaction.h /usr/include/sigcontext.h \
- /usr/include/asm/sigcontext.h /usr/include/errno.h \
- /usr/include/errnos.h /usr/include/linux/errno.h \
+ /usr/include/asm/sigcontext.h /usr/include/sigstack.h \
+ /usr/include/errno.h /usr/include/errnos.h /usr/include/linux/errno.h \
  /usr/include/asm/errno.h /usr/include/string.h /usr/include/stdio.h \
  /usr/include/libio.h /usr/include/_G_config.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stdarg.h \
@@ -282,66 +283,35 @@ $(OBJECT_LOCATION)/history.o: history.c /usr/include/stdlib.h /usr/include/featu
  include/config.h include/root.h include/autoconfig.h include/player.h \
  /usr/include/sys/time.h /usr/include/timebits.h \
  include/robot_player.h include/proto.h include/dynamic.h
-$(OBJECT_LOCATION)/ident_client.o: ident_client.c /usr/include/stdlib.h \
+$(OBJECT_LOCATION)/ident_server.o: ident_server.c /usr/include/unistd.h \
  /usr/include/features.h /usr/include/sys/cdefs.h \
- /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs.h /usr/include/posix_opt.h \
+ /usr/include/gnu/types.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stddef.h \
- /usr/include/sys/types.h /usr/include/gnu/types.h /usr/include/time.h \
- /usr/include/endian.h /usr/include/bytesex.h \
- /usr/include/sys/select.h /usr/include/selectbits.h \
- /usr/include/alloca.h /usr/include/stdio.h /usr/include/libio.h \
- /usr/include/_G_config.h \
- /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stdarg.h \
- /usr/include/stdio_lim.h /usr/include/errno.h /usr/include/errnos.h \
- /usr/include/linux/errno.h /usr/include/asm/errno.h \
- /usr/include/sys/time.h /usr/include/timebits.h /usr/include/signal.h \
- /usr/include/sigset.h /usr/include/signum.h /usr/include/sigaction.h \
- /usr/include/sigcontext.h /usr/include/asm/sigcontext.h \
- /usr/include/sys/ioctl.h /usr/include/ioctls.h \
- /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h \
- /usr/include/linux/sockios.h /usr/include/asm/sockios.h \
- /usr/include/ioctl-types.h /usr/include/sys/ttydefaults.h \
- /usr/include/string.h /usr/include/fcntl.h /usr/include/fcntlbits.h \
- /usr/include/sys/stat.h /usr/include/statbuf.h /usr/include/sys/un.h \
- /usr/include/sockaddrcom.h /usr/include/unistd.h \
- /usr/include/posix_opt.h /usr/include/confname.h \
- /usr/include/sys/wait.h /usr/include/waitflags.h \
- /usr/include/waitstatus.h include/config.h include/root.h \
- include/autoconfig.h include/player.h include/robot_player.h \
- include/fix.h include/proto.h include/dynamic.h include/ident.h \
- /usr/include/netinet/in.h /usr/include/sys/socket.h \
- /usr/include/socketbits.h /usr/include/asm/socket.h \
- /usr/include/netdb.h /usr/include/rpc/netdb.h \
- /usr/include/arpa/inet.h
-$(OBJECT_LOCATION)/ident_server.o: ident_server.c include/config.h include/root.h \
- include/autoconfig.h include/player.h /usr/include/sys/time.h \
- /usr/include/features.h /usr/include/sys/cdefs.h \
- /usr/include/gnu/stubs.h /usr/include/time.h \
- /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stddef.h \
- /usr/include/timebits.h /usr/include/gnu/types.h \
- /usr/include/sys/select.h /usr/include/selectbits.h \
- include/robot_player.h include/fix.h include/proto.h \
- include/dynamic.h /usr/include/unistd.h /usr/include/posix_opt.h \
  /usr/include/confname.h /usr/include/stdlib.h \
- /usr/include/sys/types.h /usr/include/endian.h /usr/include/bytesex.h \
- /usr/include/alloca.h /usr/include/stdio.h /usr/include/libio.h \
- /usr/include/_G_config.h \
+ /usr/include/sys/types.h /usr/include/time.h /usr/include/endian.h \
+ /usr/include/bytesex.h /usr/include/sys/select.h \
+ /usr/include/selectbits.h /usr/include/alloca.h /usr/include/stdio.h \
+ /usr/include/libio.h /usr/include/_G_config.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stdarg.h \
  /usr/include/stdio_lim.h /usr/include/string.h /usr/include/errno.h \
  /usr/include/errnos.h /usr/include/linux/errno.h \
- /usr/include/asm/errno.h /usr/include/signal.h /usr/include/sigset.h \
+ /usr/include/asm/errno.h /usr/include/sys/time.h \
+ /usr/include/timebits.h /usr/include/signal.h /usr/include/sigset.h \
  /usr/include/signum.h /usr/include/sigaction.h \
  /usr/include/sigcontext.h /usr/include/asm/sigcontext.h \
- /usr/include/sys/ioctl.h /usr/include/ioctls.h \
- /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h \
- /usr/include/linux/sockios.h /usr/include/asm/sockios.h \
- /usr/include/ioctl-types.h /usr/include/sys/ttydefaults.h \
- /usr/include/sys/socket.h /usr/include/socketbits.h \
- /usr/include/sockaddrcom.h /usr/include/asm/socket.h \
+ /usr/include/sigstack.h /usr/include/sys/ioctl.h \
+ /usr/include/ioctls.h /usr/include/asm/ioctls.h \
+ /usr/include/asm/ioctl.h /usr/include/ioctl-types.h \
+ /usr/include/sys/ttydefaults.h /usr/include/sys/socket.h \
+ /usr/include/socketbits.h /usr/include/sockaddrcom.h \
+ /usr/include/asm/socket.h /usr/include/asm/sockios.h \
  /usr/include/sys/resource.h /usr/include/resourcebits.h \
- /usr/include/asm/resource.h include/ident.h /usr/include/netinet/in.h \
- /usr/include/netdb.h /usr/include/rpc/netdb.h \
- /usr/include/arpa/inet.h
+ /usr/include/asm/resource.h include/config.h include/root.h \
+ include/autoconfig.h include/player.h include/robot_player.h \
+ include/fix.h include/proto.h include/dynamic.h include/ident.h \
+ /usr/include/netinet/in.h /usr/include/netdb.h \
+ /usr/include/rpc/netdb.h /usr/include/arpa/inet.h
 $(OBJECT_LOCATION)/intercom.o: intercom.c include/config.h include/root.h \
  include/autoconfig.h /usr/include/stdio.h /usr/include/libio.h \
  /usr/include/features.h /usr/include/sys/cdefs.h \
@@ -361,16 +331,16 @@ $(OBJECT_LOCATION)/intercom.o: intercom.c include/config.h include/root.h \
  /usr/include/asm/socket.h /usr/include/asm/sockios.h \
  /usr/include/sys/un.h /usr/include/sys/ioctl.h /usr/include/ioctls.h \
  /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h \
- /usr/include/linux/sockios.h /usr/include/ioctl-types.h \
- /usr/include/sys/ttydefaults.h /usr/include/stdlib.h \
- /usr/include/alloca.h /usr/include/netinet/in.h \
+ /usr/include/ioctl-types.h /usr/include/sys/ttydefaults.h \
+ /usr/include/stdlib.h /usr/include/alloca.h /usr/include/netinet/in.h \
  /usr/include/arpa/inet.h /usr/include/arpa/telnet.h \
  /usr/include/netdb.h /usr/include/rpc/netdb.h /usr/include/signal.h \
  /usr/include/sigset.h /usr/include/signum.h /usr/include/sigaction.h \
  /usr/include/sigcontext.h /usr/include/asm/sigcontext.h \
- /usr/include/ctype.h /usr/include/errno.h /usr/include/errnos.h \
- /usr/include/linux/errno.h /usr/include/asm/errno.h \
- include/intercom.h include/player.h include/robot_player.h xstring.c
+ /usr/include/sigstack.h /usr/include/ctype.h /usr/include/errno.h \
+ /usr/include/errnos.h /usr/include/linux/errno.h \
+ /usr/include/asm/errno.h include/intercom.h include/player.h \
+ include/robot_player.h xstring.c
 $(OBJECT_LOCATION)/intercom_glue.o: intercom_glue.c include/config.h include/root.h \
  include/autoconfig.h /usr/include/stdio.h /usr/include/libio.h \
  /usr/include/features.h /usr/include/sys/cdefs.h \
@@ -382,14 +352,14 @@ $(OBJECT_LOCATION)/intercom_glue.o: intercom_glue.c include/config.h include/roo
  /usr/include/posix_opt.h /usr/include/confname.h \
  /usr/include/signal.h /usr/include/sigset.h /usr/include/signum.h \
  /usr/include/sigaction.h /usr/include/sigcontext.h \
- /usr/include/asm/sigcontext.h /usr/include/sys/socket.h \
- /usr/include/socketbits.h /usr/include/sockaddrcom.h \
- /usr/include/asm/socket.h /usr/include/asm/sockios.h \
- /usr/include/sys/types.h /usr/include/time.h /usr/include/endian.h \
- /usr/include/bytesex.h /usr/include/sys/select.h \
- /usr/include/selectbits.h /usr/include/sys/ioctl.h \
- /usr/include/ioctls.h /usr/include/asm/ioctls.h \
- /usr/include/asm/ioctl.h /usr/include/linux/sockios.h \
+ /usr/include/asm/sigcontext.h /usr/include/sigstack.h \
+ /usr/include/sys/socket.h /usr/include/socketbits.h \
+ /usr/include/sockaddrcom.h /usr/include/asm/socket.h \
+ /usr/include/asm/sockios.h /usr/include/sys/types.h \
+ /usr/include/time.h /usr/include/endian.h /usr/include/bytesex.h \
+ /usr/include/sys/select.h /usr/include/selectbits.h \
+ /usr/include/sys/ioctl.h /usr/include/ioctls.h \
+ /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h \
  /usr/include/ioctl-types.h /usr/include/sys/ttydefaults.h \
  /usr/include/sys/un.h /usr/include/string.h /usr/include/sys/time.h \
  /usr/include/timebits.h /usr/include/malloc.h /usr/include/ctype.h \
@@ -455,9 +425,9 @@ $(OBJECT_LOCATION)/mail.o: mail.c /usr/include/stdlib.h /usr/include/features.h 
  /usr/include/confname.h /usr/include/string.h /usr/include/signal.h \
  /usr/include/sigset.h /usr/include/signum.h /usr/include/sigaction.h \
  /usr/include/sigcontext.h /usr/include/asm/sigcontext.h \
- /usr/include/memory.h include/fix.h include/config.h include/root.h \
- include/autoconfig.h include/player.h include/robot_player.h \
- include/proto.h include/dynamic.h
+ /usr/include/sigstack.h /usr/include/memory.h include/fix.h \
+ include/config.h include/root.h include/autoconfig.h include/player.h \
+ include/robot_player.h include/proto.h include/dynamic.h
 $(OBJECT_LOCATION)/multi.o: multi.c /usr/include/stdio.h /usr/include/libio.h \
  /usr/include/features.h /usr/include/sys/cdefs.h \
  /usr/include/gnu/stubs.h /usr/include/_G_config.h \
@@ -486,8 +456,8 @@ $(OBJECT_LOCATION)/news.o: news.c /usr/include/stdlib.h /usr/include/features.h 
  /usr/include/posix_opt.h /usr/include/confname.h \
  /usr/include/signal.h /usr/include/sigset.h /usr/include/signum.h \
  /usr/include/sigaction.h /usr/include/sigcontext.h \
- /usr/include/asm/sigcontext.h /usr/include/memory.h \
- /usr/include/dirent.h /usr/include/direntry.h \
+ /usr/include/asm/sigcontext.h /usr/include/sigstack.h \
+ /usr/include/memory.h /usr/include/dirent.h /usr/include/direntry.h \
  /usr/include/posix1_lim.h /usr/include/local_lim.h \
  /usr/include/linux/limits.h /usr/include/sys/stat.h \
  /usr/include/statbuf.h /usr/include/sys/time.h \
@@ -504,11 +474,12 @@ $(OBJECT_LOCATION)/parse.o: parse.c /usr/include/ctype.h /usr/include/features.h
  /usr/include/sys/select.h /usr/include/selectbits.h \
  /usr/include/signal.h /usr/include/sigset.h /usr/include/signum.h \
  /usr/include/sigaction.h /usr/include/sigcontext.h \
- /usr/include/asm/sigcontext.h /usr/include/sys/wait.h \
- /usr/include/waitflags.h /usr/include/waitstatus.h \
- /usr/include/sys/types.h /usr/include/string.h /usr/include/memory.h \
- /usr/include/malloc.h /usr/include/stdlib.h /usr/include/alloca.h \
- /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
+ /usr/include/asm/sigcontext.h /usr/include/sigstack.h \
+ /usr/include/sys/wait.h /usr/include/waitflags.h \
+ /usr/include/waitstatus.h /usr/include/sys/types.h \
+ /usr/include/string.h /usr/include/memory.h /usr/include/malloc.h \
+ /usr/include/stdlib.h /usr/include/alloca.h /usr/include/stdio.h \
+ /usr/include/libio.h /usr/include/_G_config.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stdarg.h \
  /usr/include/stdio_lim.h include/config.h include/root.h \
  include/autoconfig.h include/player.h include/robot_player.h \
@@ -532,12 +503,13 @@ $(OBJECT_LOCATION)/plists.o: plists.c /usr/include/stdlib.h /usr/include/feature
  /usr/include/string.h /usr/include/memory.h /usr/include/signal.h \
  /usr/include/sigset.h /usr/include/signum.h /usr/include/sigaction.h \
  /usr/include/sigcontext.h /usr/include/asm/sigcontext.h \
- /usr/include/setjmp.h /usr/include/jmp_buf.h include/fix.h \
- include/config.h include/root.h include/autoconfig.h include/player.h \
- /usr/include/sys/time.h include/robot_player.h include/proto.h \
- include/dynamic.h compaction.c /usr/include/netinet/in.h \
- include/ident.h /usr/include/netdb.h /usr/include/rpc/netdb.h \
- /usr/include/arpa/inet.h robot_plists.c robot_int.c
+ /usr/include/sigstack.h /usr/include/setjmp.h /usr/include/jmp_buf.h \
+ include/fix.h include/config.h include/root.h include/autoconfig.h \
+ include/player.h /usr/include/sys/time.h include/robot_player.h \
+ include/proto.h include/dynamic.h compaction.c \
+ /usr/include/netinet/in.h include/ident.h /usr/include/netdb.h \
+ /usr/include/rpc/netdb.h /usr/include/arpa/inet.h robot_plists.c \
+ robot_int.c
 $(OBJECT_LOCATION)/reboot.o: reboot.c /usr/include/stdio.h /usr/include/libio.h \
  /usr/include/features.h /usr/include/sys/cdefs.h \
  /usr/include/gnu/stubs.h /usr/include/_G_config.h \
@@ -644,9 +616,10 @@ $(OBJECT_LOCATION)/socket.o: socket.c /usr/include/stdlib.h /usr/include/feature
  /usr/include/alloca.h /usr/include/stdio.h /usr/include/libio.h \
  /usr/include/_G_config.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stdarg.h \
- /usr/include/stdio_lim.h /usr/include/string.h /usr/include/unistd.h \
- /usr/include/posix_opt.h /usr/include/confname.h /usr/include/ctype.h \
- /usr/include/errno.h /usr/include/errnos.h /usr/include/linux/errno.h \
+ /usr/include/stdio_lim.h /usr/include/assert.h /usr/include/string.h \
+ /usr/include/unistd.h /usr/include/posix_opt.h \
+ /usr/include/confname.h /usr/include/ctype.h /usr/include/errno.h \
+ /usr/include/errnos.h /usr/include/linux/errno.h \
  /usr/include/asm/errno.h /usr/include/netdb.h \
  /usr/include/rpc/netdb.h /usr/include/fcntl.h \
  /usr/include/fcntlbits.h /usr/include/sys/stat.h \
@@ -656,12 +629,11 @@ $(OBJECT_LOCATION)/socket.o: socket.c /usr/include/stdlib.h /usr/include/feature
  /usr/include/sys/un.h /usr/include/sys/time.h /usr/include/timebits.h \
  /usr/include/sys/ioctl.h /usr/include/ioctls.h \
  /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h \
- /usr/include/linux/sockios.h /usr/include/ioctl-types.h \
- /usr/include/sys/ttydefaults.h /usr/include/netinet/in.h \
- /usr/include/arpa/inet.h /usr/include/arpa/telnet.h include/config.h \
- include/root.h include/autoconfig.h include/player.h \
- include/robot_player.h include/fix.h include/proto.h \
- include/dynamic.h include/ident.h
+ /usr/include/ioctl-types.h /usr/include/sys/ttydefaults.h \
+ /usr/include/netinet/in.h /usr/include/arpa/inet.h \
+ /usr/include/arpa/telnet.h include/config.h include/root.h \
+ include/autoconfig.h include/player.h include/robot_player.h \
+ include/fix.h include/proto.h include/dynamic.h include/ident.h
 $(OBJECT_LOCATION)/softmsg.o: softmsg.c /usr/include/stdlib.h /usr/include/features.h \
  /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stddef.h \
@@ -738,7 +710,8 @@ $(OBJECT_LOCATION)/version.o: version.c /usr/include/stdlib.h /usr/include/featu
  /usr/include/alloca.h /usr/include/stdio.h /usr/include/libio.h \
  /usr/include/_G_config.h \
  /usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include/stdarg.h \
- /usr/include/stdio_lim.h /usr/include/string.h include/config.h \
+ /usr/include/stdio_lim.h /usr/include/string.h \
+ /usr/include/sys/stat.h /usr/include/statbuf.h include/config.h \
  include/root.h include/autoconfig.h include/player.h \
  /usr/include/sys/time.h /usr/include/timebits.h \
  include/robot_player.h include/proto.h include/dynamic.h \

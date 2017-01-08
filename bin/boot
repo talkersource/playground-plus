@@ -1,49 +1,75 @@
-#!/bin/sh
+#!/bin/bash
 
-# The port we run on
-PORT=7777
+# Simple script to boot the talker. Place this in your cron tab to
+# be executed every ten minutes or so and if your server is rebooted then
+# your talker will be started up without you having to do it manually
+#
+# Original script by Grim
+# Written from scratch for pg+ by Silver
 
-# The name of the angel
-ANGEL=angel
+# You'll need to change this if your talker files are in a different
+# place to the standard ~/pgplus
 
-# The name of the server
-SERVER=talker
+cd ~/pgplus
 
-# The location of all the files
-PATHDIR="/home/user/pgplus/"
+# The name of the log
 
-# Name of a file to log info to
-BOOTERROR=boot-script.log
+LOGFILE="boot-script.log"
 
-cd $PATHDIR/bin
+# You won't need to change anything below!
+# ========================================================================
 
-#If the angel and the server are BOTH down, then rerun the angel.
+# What port do we run on?
 
-if [ "`eval ps x|egrep '$ANGEL'|egrep $PORT|egrep -v egrep`" = "" ]; then
-   if [ "`eval ps x|egrep '$SERVER'|egrep $PORT|egrep -v egrep`" = "" ]; then
-      angel &
-      exit 0
-   fi
+port=`grep "^port" soft/config.msg | cut -f2-`
+
+# Find out the status of the angel
+
+if [ -z "`ps x | grep "Angel" | grep $port`" ]
+then
+  angel_up=0
+else
+  angel_up=1
 fi
 
-#If the angel and the server are both UP, exit
+# Find out the status of the talker
 
-if [ "`eval ps x|egrep '$ANGEL'|egrep $PORT|egrep -v egrep`" != "" ]; then
-   if [ "`eval ps x|egrep '$SERVER'|egrep $PORT|egrep -v egrep`" != "" ]; then
-      exit 0
-   fi
+if [ -z "`ps x | grep "Talk Server" | grep $port`" ]
+then
+  talker_up=0
+else
+  talker_up=1
 fi
 
-#If one or the other is down, send error.
+# check if both are up
 
-echo "+++++" >> $PATHDIR/BOOTERROR
-echo "Boot failed because either the $ANGEL or the server was already alive" >> $PATHDIR/BOOTERROR
-echo `date` >> $PATHDIR/BOOTERROR
-echo "Error is :" >> $PATHDIR/BOOTERROR
-if [ "`ps x|egrep '$ANGEL'|egrep 4242|egrep -v egrep`" != "" ]; then
-        echo "Angel ALIVE" >> $PATHDIR/BOOTERROR
+if [ "$angel_up" = "1" -a "$talker_up" = "1" ]
+then
+  exit
 fi
 
-if [ "`ps x|egrep '$SERVER'|egrep 4242|egrep -v egrep`" != "" ]; then
-        echo "Server ALIVE" >> $PATHDIR/BOOTERROR
+# check if both are down
+
+if [ "$angel_up" = "0" -a "$talker_up" = "0" ]
+then
+  bin/angel &
+  exit
 fi
+
+# send an error message
+
+if [ "$angel_up" = "1" ]
+then
+  ermsg="`date +"%H:%M:%S - %d/%m/%Y"` - Unable to boot talker (angel is running)"
+else
+  ermsg="`date +"%H:%M:%S - %d/%m/%Y"` - Unable to boot talker (talk server is running)"
+fi
+
+echo "$ermsg" >>logs/$LOGFILE
+
+
+
+
+
+
+

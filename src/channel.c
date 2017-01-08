@@ -19,6 +19,13 @@
 #include "include/player.h"
 #include "include/proto.h"
 
+#ifdef INTERCOM
+void ichan_wall(char *);
+void i_chan(char *,...);
+#include "include/intercom.h"
+extern nameban *check_intercom_banished_name (char *);
+#endif
+
 /*
  * Shadow Realms channel code -- by blimey
  *
@@ -164,6 +171,29 @@ void zwall(char *str)
   }
 }
 
+/* A debugging one */
+
+void debug_wall(char *str)
+{
+  player *scan;
+
+  for (scan = flatlist_start; scan; scan = scan->flat_next)
+  {
+    if ((scan->misc_flags & SEE_DEBUG_CHANNEL) && scan->location)
+    {
+      if (scan->misc_flags & CHAN_HI)
+      {
+	command_type |= HIGHLIGHT;
+      }
+      TELLPLAYER(scan, "%s %s\n", get_config_msg("debug_chan"), str);
+      if (scan->misc_flags & CHAN_HI)
+      {
+	command_type &= ~HIGHLIGHT;
+      }
+    }
+  }
+}
+
 
 /*
  * blimey wrote this ....
@@ -251,6 +281,20 @@ int got_msg(player * p, char *str, char *cname)
   return *str;
 }
 
+void toggle_debug_channel(player * p, char *str)
+{
+  if (p->misc_flags & SEE_DEBUG_CHANNEL)
+  {
+    p->misc_flags &= ~SEE_DEBUG_CHANNEL;
+    tell_player(p, " You ignore the debug channel.\n");
+  }
+  else
+  {
+    p->misc_flags |= SEE_DEBUG_CHANNEL;
+    tell_player(p, " You start viewing the debug channel.\n");
+  }
+}
+
 void channel_toggle(player * p,
 		    void (*the_wall) (char *,...),
 		    int flag)
@@ -260,11 +304,19 @@ void channel_toggle(player * p,
   {
     p->misc_flags &= ~flag;
     the_wall("++ %s joins the channel ++\n", p->name);
+#ifdef INTERCOM
+    if (flag == NO_INTERCOM_CHANNEL)
+      intercom_channel_action(p, "join");
+#endif
   }
   else
   {
     the_wall("-- %s leaves the channel --\n", p->name);
     p->misc_flags |= flag;
+#ifdef INTERCOM
+    if (flag == NO_INTERCOM_CHANNEL)
+      intercom_channel_action(p, "leave");
+#endif
   }
 }
 
@@ -291,6 +343,11 @@ int is_on_channel(player * p, int flag)
     case NO_MAIN_CHANNEL:
       which = "main";
       break;
+#ifdef INTERCOM
+    case NO_INTERCOM_CHANNEL:
+      which = "intercom";
+      break;
+#endif
       /* add in any more channels here ... */
   }
   TELLPLAYER(p, " You aren't on the %s channel!\n", which);
@@ -845,6 +902,13 @@ void muffle(player * p, char *str)
       ADDSTACK("<ignoring>\n");
     else
       ADDSTACK("<listening>\n");
+#ifdef INTERCOM
+    ADDSTACK("Intercom channel             ");
+    if (p2->misc_flags & NO_INTERCOM_CHANNEL)
+      ADDSTACK("<ignoring>\n");
+    else
+      ADDSTACK("<listening>\n");
+#endif
     if (p2->residency & SPOD)
     {
       ADDSTACK("Spod channel                 ");
@@ -869,6 +933,15 @@ void muffle(player * p, char *str)
     else
       ADDSTACK("<seeing>\n");
 
+    if (p2->residency & DEBUG)
+    {
+      ADDSTACK("Debug channel                ");
+      if (p2->misc_flags & SEE_DEBUG_CHANNEL)
+	ADDSTACK("<listening>\n");
+      else
+	ADDSTACK("<ignoring>\n");
+    }
+
     ENDSTACK("\n" LINE);
     tell_player(p, oldstack);
     stack = oldstack;
@@ -876,6 +949,10 @@ void muffle(player * p, char *str)
   }
   if (strstr(str, "mai"))
     channel_toggle(p, cu_chan, NO_MAIN_CHANNEL);	/* blimey */
+#ifdef INTERCOM
+  else if (strstr(str, "int") || strstr(str, "ich"))
+    channel_toggle(p, i_chan, NO_INTERCOM_CHANNEL);    /* Silver */
+#endif
   else if (strstr(str, "spo") && p->residency & SPOD)
     channel_toggle(p, pu_chan, NO_SPOD_CHANNEL);	/* blimey */
   else if (strstr(str, "ses"))
@@ -884,12 +961,16 @@ void muffle(player * p, char *str)
     toggle_view_clock(p, "");
   else if (strstr(str, "dyn"))
     toggle_yes_dynatext(p, "");
+  else if (strstr(str, "deb") && p->residency & DEBUG)
+    toggle_debug_channel(p, "");
   else
   {
     tell_player(p, " Format: muffle <section>\n"
 		"  Where section can be: main");
     if (p->residency & SPOD)
       tell_player(p, ", spod");
+    if (p->residency & DEBUG)
+      tell_player(p, ", debug");
     tell_player(p, ", session, clock, dynatext\n");
   }
 }
@@ -897,6 +978,10 @@ void muffle(player * p, char *str)
 /* Version information */
 void channel_version()
 {
-  sprintf(stack, " -=*> Channel code v2.0 (by Silver and blimey) enabled.\n");
+  sprintf(stack, " -=*> Channel code v2.0 (by Silver and blimey) installed.\n");
   stack = strchr(stack, 0);
 }
+
+#ifdef INTERCOM
+#include "channel2.c"
+#endif

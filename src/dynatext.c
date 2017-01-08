@@ -11,6 +11,7 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "include/config.h"
 #include "include/player.h"
 #include "include/fix.h"
@@ -29,10 +30,11 @@ player *this_rand;		/* we preserve the random player so that when you
 
 char talker_name[80];
 char talker_email[80];
+int number_of(int);
 
 void dynatext_version()
 {
-  sprintf(stack, " -=*> Dynatext v2.0 (by Silver, phypor and blimey) enabled.\n");
+  sprintf(stack, " -=*> Dynatext v2.1 (by Silver, phypor and blimey) enabled.\n");
   stack = strchr(stack, 0);
 }
 
@@ -76,6 +78,19 @@ char *convert_dynatext(player * p, char *str)
 	case 'j':
 	  sprintf(stack, "%d", pot);
 	  break;
+        case 'p':
+           sprintf (stack, "%d", current_players);
+           break;
+        case 's':
+           sprintf (stack, "%d", count_su());
+           break;
+        case 'P':
+           sprintf (stack, "%d", number_of(0)); 
+           break;
+        case 'S':
+           sprintf (stack, "%d", number_of(1)); 
+           break;
+
 
 	  /* ahh, we have a player */
 	case 'm':
@@ -99,7 +114,8 @@ char *convert_dynatext(player * p, char *str)
 	  sprintf(stack, "&%c", *(scan + 1));
 	  break;
       }
-      if (target && *(scan + 2) == '-' && *(scan + 3) == '>')
+      if (target && target->lower_name[0] &&
+	  *(scan + 2) == '-' && *(scan + 3) == '>')
       {
 	switch (*(scan + 4))
 	{
@@ -163,6 +179,12 @@ char *convert_dynatext(player * p, char *str)
 	    /*scan--;   */
 	    break;
 	}
+	scan += 3;
+      }
+
+      else if (*(scan + 2) == '-' && *(scan + 3) == '>')	/* bad target */
+      {
+	sprintf(stack, "%s", get_config_msg("bad_dynatext"));
 	scan += 3;
       }
       else if (target)		/* well, let them get just name if alone */
@@ -293,6 +315,9 @@ player *get_random_talker_player(void)
 
   if (this_rand)
     return this_rand;
+  if (!current_player)
+    return (player *) NULL;
+
   if (!current_players || !current_player->location)
     return current_player;
   i = (rand() % current_players);
@@ -301,4 +326,34 @@ player *get_random_talker_player(void)
 
   this_rand = scan;
   return scan;
+}
+
+int number_of(int only_su)
+{
+   saved_player     *scan, **hash;
+   char              c;
+   int               i, count = 0;
+
+   for (c = 'a'; c <= 'z'; c++)
+   {
+      hash = saved_hash[((int) (tolower(c)) - (int) 'a')];
+      for (i = 0; i < HASH_SIZE; i++, hash++)
+      {
+         for (scan = *hash; scan; scan = scan->next)
+         {
+            if (scan->residency == BANISHD || scan->residency & ROBOT_PRIV ||
+                scan->residency & SYSTEM_ROOM)
+                  continue;
+            if (only_su == 1)
+            {
+              if (scan->residency & (PSU | SU | ASU | LOWER_ADMIN | ADMIN | CODER | HCADMIN))
+                count++;
+            }
+            else
+              count++;
+         }
+      }
+   }
+
+  return count;
 }

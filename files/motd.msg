@@ -7,6 +7,7 @@
 
   If you have any questions, problems or need help with commands then
   please ask one of the staff.
+
                                                            ~ The Admin
 
 ---------------------------------------------------------------------------

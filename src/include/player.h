@@ -8,9 +8,14 @@
 
 /* kludgy macros, there must be a better way to do this */
 
-#define align(p)	p=(void *)(((int)p+3)&-4)
+/* #define align(p)	p=(void *)(((int)p+3)&-4) */
+
+#define SIZEOFVOIDSTAR	(sizeof(void *))
+#define align(p)	p=(void *)(((unsigned long)p+(SIZEOFVOIDSTAR-1))&-SIZEOFVOIDSTAR)
 #define CHECK_DUTY(p)	if (!(check_duty((p)))) return;
 #define FORMAT(ck,s)	if (!(*(ck)))  { tell_player(current_player, (s)); return; }
+#define HAS_PRIV(p,r)	((p)->residency & (r))
+#define RES_BIT_HEAD	"Sys |Ressie|MiscRes |Misc|Staff"
 
 #ifdef ROBOTS
 #define CHECKROBOT(p)   if (!p->residency & ROBOT_PRIV) \
@@ -50,7 +55,6 @@
 
 /* residency types */
 
-#define STANDARD_ROOMS	-2
 #define BANISHED	-1
 #define NON_RESIDENT	0
 #define BASE		1
@@ -64,9 +68,8 @@
 #define BUILD		(1<<8)  /* can use room commands */
 #define SESSION		(1<<9)  /* can set the session */
 #define SPOD		(1<<10) /* spod channel access */
-#define NOTUSED		(1<<11) /* unused */
 #define SPECIALK	(1<<11) /* can create socials */
-#define NOTUSED2	(1<<12) /* unused */
+#define DEBUG		(1<<12) /* can view the debug channel */
 #define NONCLERGY	(1<<13) /* unused, left for backward compatiblity */
 #define PSU		(1<<14) /* can use su channel commands */
 #define WARN		(1<<15) /* can use 'warn' */
@@ -98,7 +101,7 @@
  /* these are the privs that arent counted when privs are compared */
 #define NONSU (BASE + ECHO_PRIV + NO_TIMEOUT + MAIL + LIST + BUILD + SESSION \
                + SCRIPT + TRACE + DUMB + HOUSE + SPOD + WARN + BUILDER + \
-               MINISTER + SPOD + SPECIALK)
+               MINISTER + SPECIALK + DEBUG + GIT)
 
  /* privs a hard coded (in admin.h) player gets on login */
  /* Note, CODER isnt here...to have hcadmins seperate from coders */
@@ -171,6 +174,7 @@
 #define UPDATE_URLS		(1<<21)
 #define CLOSED_TO_RESSIES	(1<<22)
 #define UPDATE_INT_DATA		(1<<23)
+#define SCREENING_NEWBIES	(1<<24)
 
 /* config type flags (as set in soft/config.msg) */
 
@@ -198,6 +202,7 @@
 #define cfSHOWXED		(1<<21)   /* show_when_xd */
 #define cfWELCOMEMAIL		(1<<22)   /* do_email_check */
 #define cfCAPPEDNAMES		(1<<23)   /* capped_names */
+#define cfSUSCANRECAP		(1<<24)   /* sus_can_recap */
 
 /* player flag defs */
 
@@ -229,6 +234,7 @@
 #define UNUSED2			(1<<25)
 #define WAITING_ENGAGE		(1<<26)
 #define ROBOT			(1<<27)
+#define IN_EDITOR		(1<<28)
 
 /* ones that get saved */
 /* lower block, system flags */
@@ -323,7 +329,6 @@
 
 #define NO_PRS			(1<<0)
 #define NO_GIFT			(1<<1)
-#define IN_EDITOR		(1<<2)
 
 /* misc flags, upper */
 
@@ -335,6 +340,21 @@
 #define STOP_BAD_COLORS		(1<<15)
 #define NO_MAIN_CHANNEL		(1<<16)
 #define NO_SPOD_CHANNEL		(1<<17)
+#define SEE_DEBUG_CHANNEL	(1<<18)
+#ifdef INTERCOM
+#define NO_INTERCOM_CHANNEL     (1<<19)
+#endif
+/* EWE */
+#define edPARAGRAPH_MODE 	(1<<20)		/* off=off, on=on ;-) */
+#define edPARAGRAPH_STYLE 	(1<<21)		/* off=ew2, on=correct */
+#define edAUTOTRUNCATE 		(1<<22)		/* whether we scroll included text */
+#define edAUTOTRUNCATE_ALL 	(1<<23)		/* off - included, on - anything */
+#define edPRETTY_OUTPUT 	(1<<24)		/* on gives space before output */
+#define edFORMAT_OUTPUT 	(1<<25)		/* just nav, or all */
+#define edPADBIT1 		(1<<26)		/* no more saved int needed */
+#define edPADBIT2 		(1<<27)		/* as above */
+#define edPADBIT3 		(1<<28)
+#define edINSERT_BEFORE		(1<<29)		/* obvious really */
 
 /* list flags */
 
@@ -383,6 +403,9 @@
 #endif
 #define BLOCK_ALL_CHANS		(1<<21)
 #define HI_CHANS		(1<<22)
+#ifdef ALLOW_MULTIS
+#define REMOVE_COM		(1<<23)
+#endif
 
 
 /* color modes */
@@ -668,15 +691,39 @@ typedef struct s_struct
 
 } saved_player;
 
+/* EWE */
+/* editor line structure and flags */
+#define edlineINCLUDED (1<<0)
+#define edlineJUST_INSERTED (1<<1)
+#define edlineMARKED1 (1<<2)
+#define edlineMARKED2 (1<<3)
+#define edlineINCLUDED_MATTERS (1<<4)
+
+struct editor_line_struct
+{
+   int	number;
+   char	text[76];
+   int	flags;
+   struct editor_line_struct *next;
+};
+typedef struct editor_line_struct editor_line;
+
+
 /* editor info structure */
 typedef struct
 {
    char
      *buffer,
      *current;
+   editor_line
+     *first_line,
+     *current_line;
+   char
+     last_search[75];
    int
      max_size,
      size,
+     total_lines,
      flag_copy,
      sflag_copy,
      tflag_copy,

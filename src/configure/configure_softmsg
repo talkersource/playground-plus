@@ -1,0 +1,85 @@
+##########################################################################
+#
+# Playground Plus configuration script
+# copyright (c) Richard Lawrence 1999
+#
+# This script is distributed for and ONLY for the Playground Plus package. 
+# It may not be used in any other distribution without the prior permission
+# of the author. No reply to your request does NOT constitute permission.
+#
+##########################################################################
+
+# configure_softmsg
+# forces people to set their soft messages before booting
+# by Richard 'Silver' Lawrence
+
+PG_VERSION=`egrep "\#define PG_VERSION" include/config.h | cut -d"\"" -f2`
+
+clear
+
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ CONFIGURE SOFTMESSAGES
+
+ Playground Plus uses "softmessages". These are options stored in a text
+ file which can be edited whilst the talker is running. 
+
+ Before you compile and boot the talker you may want to, at least,
+ change some of the basic options. These are listed below along with
+ their current values:
+
+     - Your talker name (`grep "^talker_name" ../soft/config.msg | cut -f2-`)
+     - Your talker port (`grep "^port" ../soft/config.msg | cut -f2-`)
+     - Your talker email address (`grep "^talker_email" ../soft/config.msg | cut -f2-`)
+     - Your intercom abbreviation (`grep "^intercom_abbr" ../soft/config.msg | cut -f2-`)
+     - The HCAdmins (`grep "^hcadmins" ../soft/config.msg | cut -f2-`)
+     - The HCAdmin access password (`grep "^hc_passwd" ../soft/config.msg | cut -f2-`)
+
+*END*
+
+echo -n " Would you like to edit these values? [Y]: "
+read response
+
+if [ "$response" != "n" ]
+then
+  echo -n " Type in the command line of your favourite editor [$EDITOR]: "
+  read fav
+  if [ "$fav" = "" ]
+  then
+    fav=$EDITOR
+  else
+    EDITOR=$fav 
+    export EDITOR
+  fi
+  $EDITOR ../soft/config.msg
+  bash configure/configure_softmsg
+  exit
+fi
+
+clear
+
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ COMPILE TALKER
+
+ `grep "^talker_name" ../soft/config.msg | cut -f2-` is now ready to be compiled.
+
+ This will take from between 2 and 15 minutes depending on the speed and
+ load of your server. Once you have compiled your talker then you can boot
+ it up and have people using it.
+
+ Type:
+
+     make install        - to compile all parts of your talker
+     ../bin/angel &      - to boot up your talker on port `grep "^port" ../soft/config.msg | cut -f2-`
+
+ If you have any problems or questions please consult the help files which
+ are located in the pgplus/help_files directory.
+
+*END*

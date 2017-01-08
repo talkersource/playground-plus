@@ -1,3 +1,14 @@
+##########################################################################
+#
+# Playground Plus configuration script
+# copyright (c) Richard Lawrence 1999
+#
+# This script is distributed for and ONLY for the Playground Plus package. 
+# It may not be used in any other distribution without the prior permission
+# of the author. No reply to your request does NOT constitute permission.
+#
+##########################################################################
+
 # get_dir 1.0 (17.06.98)
 # Written by Richard Lawrence (aka Silver)
 #
@@ -41,7 +52,7 @@ fi
 # Is there any difference between this new one and the current one?
 #
 
-if [ -n "`diff include/root.temp include/root.h`" ]
+if [ -n "`cmp include/root.temp include/root.h`" ]
 then
   mv include/root.temp include/root.h
   exit

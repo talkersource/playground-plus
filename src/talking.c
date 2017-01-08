@@ -529,9 +529,9 @@ int check_shout_ability(player * p, char *str)
     tell_player(p, " But this is a soundproof room !!\n");
     return 0;
   }
-  if (p->location == colony)
+  if (p->location == relaxed)
   {
-    tell_player(p, " You cannot shout whilst in the bathroom..\n");
+    TELLPLAYER(p, " You cannot shout whilst in the %s ...\n", RELAXED_ROOM);
     return 0;
   }
   if (p->no_shout || p->system_flags & SAVENOSHOUT)
@@ -842,7 +842,6 @@ void tell(player * p, char *str)
   {
     *msg = 0;
     msg = get_frog_msg("tell");
-
   }
   else
   {
@@ -900,14 +899,23 @@ void tell(player * p, char *str)
     n = global_tag(p, str, 1);
 
   if (n > 1)
-  {
-    stack = oldstack;
-    multi_tell(p, str, msg);
-    return;
-  }
+    if (!(sys_flags & ROOM_TAG))
+    {
+      multi_tell(p, str, msg);
+      stack = oldstack;
+      return;
+    }
 #else
   n = global_tag(p, str);
 #endif
+
+  if ((n == 1 ) && (sys_flags & ROOM_TAG))
+  {
+    cleanup_tag(list, n);
+    tell_player(p, " You are alone in the room.\n");
+    stack = oldstack;
+    return;
+  }
 
   if (!n)
   {
@@ -1159,14 +1167,23 @@ void remote_cmd(player * p, char *str, int manual)
     n = global_tag(p, str, 1);
 
   if (n > 1)
-  {
-    stack = oldstack;
-    multi_remote(p, str, msg);
-    return;
-  }
+    if (!(sys_flags & ROOM_TAG))
+    {
+      multi_remote(p, str, msg);
+      stack = oldstack;
+      return;
+    }
 #else
   n = global_tag(p, str);
 #endif
+
+  if ((n == 1 ) && (sys_flags & ROOM_TAG))
+  {
+    cleanup_tag(list, n);
+    tell_player(p, " You are alone in the room.\n");
+    stack = oldstack;
+    return;
+  }
 
   if (!n)
   {
@@ -2792,6 +2809,12 @@ void beepat_friends(player * p, char *str)
     return;
   }
 
+  if (p->tag_flags & BLOCK_FRIENDS)
+  {
+    tell_player(p, " You dork. You can not friendspam when you're blocking friends\n");
+    return;
+  }
+
   oldstack = stack;
   sprintf(stack, "friends %s", str);
   stack = end_string(stack);
@@ -2832,16 +2855,16 @@ void beepat_others_friends(player * p, char *str)
   stack = oldstack;
 }
 
-/* Go to the nudist colony, where you can be as offensive as you like */
+/* Go to the relaxed room, where you can be as offensive as you like */
 /* Well, nearly */
-void go_colony(player * p, char *str)
+void go_relaxed(player * p, char *str)
 {
   player *p2;
   char *oldstack;
 
   oldstack = stack;
   if ((p->residency & SU) && (*str))
-    /* Move someone else to the colony */
+    /* Move someone else to the relaxed room */
   {
     /* find them */
     p2 = find_player_global(str);
@@ -2849,7 +2872,7 @@ void go_colony(player * p, char *str)
       return;
     else
     {
-      /* no colonising your superiors... */
+      /* no relaxing your superiors... */
       if (p2->residency >= p->residency)
       {
 	tell_player(p, " You try and try, but you're just to weak to"
@@ -2857,24 +2880,25 @@ void go_colony(player * p, char *str)
 	return;
       }
       /* and they might already be there */
-      if (!strcmp(p2->location->owner->lower_name, "main")
-	  && !strcmp(p2->location->id, "potty"))
+      if (!strcmp(p2->location->owner->lower_name, SYS_ROOM_OWNER)
+	  && !strcmp(p2->location->id, RELAXED_ROOM))
       {
-	tell_player(p, " They're already in the potty!!\n");
+	TELLPLAYER(p, " They're already in the %s!\n", RELAXED_ROOM);
 	return;
       }
       /* tell the SU channel */
       command_type |= ADMIN_BARGE;
-      sprintf(stack, " -=> %s puts %s in the potty.\n", p->name,
-	      p2->name);
+      sprintf(stack, " -=> %s puts %s in the %s.\n", p->name,
+	      p2->name, RELAXED_ROOM);
       stack = end_string(stack);
       su_wall(oldstack);
       stack = oldstack;
       /* tell the player */
-      tell_player(p2, " -=> You suddenly find yourself picked up out of"
-		  " the room, and you fly through the air, landing in...\n");
+      tell_player(p2,
+	     " -=*> You suddenly find yourself picked up out of the room,\n"
+		  " -=*> and you fly through the air, landing in...\n");
       /* move them */
-      move_to(p2, "main.potty", 0);
+      move_to(p2, sys_room_id(RELAXED_ROOM), 0);
       /* stick them in place for 60 secs */
       p2->no_move = 60;
       return;
@@ -2883,10 +2907,10 @@ void go_colony(player * p, char *str)
   }
   /* no argument specified or player is not an SU */
   /* check if they're in the can already */
-  if (!strcmp(p->location->owner->lower_name, "main")
-      && !strcmp(p->location->id, "potty"))
+  if (!strcmp(p->location->owner->lower_name, SYS_ROOM_OWNER)
+      && !strcmp(p->location->id, RELAXED_ROOM))
   {
-    tell_player(p, " You're already in the potty!\n");
+    TELLPLAYER(p, " You're already in the %s!\n", RELAXED_ROOM);
     return;
   }
   /* or if they're stuck */
@@ -2896,5 +2920,5 @@ void go_colony(player * p, char *str)
     return;
   }
   /* otherwise move them */
-  move_to(p, "main.potty", 0);
+  move_to(p, sys_room_id(RELAXED_ROOM), 0);
 }

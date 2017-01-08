@@ -12,7 +12,7 @@
  * 'This code' refers to the actual src, the look and feel
  * of the output, and any derivied works from it
  *
- * This code is licensed for distribution in PG+ ONLY
+ * This code is licenced for distribution in PG+ ONLY
  * You may not distribute this code in any form other than
  * within the code release PG+, you may only distribute
  * it in a successor of PG+ with express consent in writing
@@ -322,11 +322,7 @@ int load_social(char *name)
 
 }
 
-#ifdef REDHAT5
-int valid_social(struct dirent *d)
-#else /* REDHAT5 */
-int valid_social(const struct dirent *d)
-#endif
+int valid_social(DIRENT_PROTO struct dirent *d)
 {
   if (d->d_name[0] == '.')
     return 0;
@@ -343,7 +339,7 @@ void init_socials(void)
   if (!dc)
   {
     if (de)
-      FREE(de);
+      free(de);
     return;
   }
   destroy_all_socials();
@@ -515,8 +511,8 @@ int match_social(player * p, char *str)
     {
       if (p->social_index)
       {
-        tell_player(p, " You don't want to be overly social do you?\n");
-        return 1;
+	tell_player(p, " You don't want to be overly social do you?\n");
+	return 1;
       }
       do_any_social(p, scan, strptr);
       sys_flags = old_sys;
@@ -531,8 +527,8 @@ int match_social(player * p, char *str)
     {
       if (p->social_index)
       {
-        tell_player(p, " You don't want to be overly social do you?\n");
-        return 1;
+	tell_player(p, " You don't want to be overly social do you?\n");
+	return 1;
       }
       do_simple_social(p, &SimpleSocials[i], strptr);
       sys_flags = old_sys;
@@ -548,8 +544,8 @@ int match_social(player * p, char *str)
     {
       if (p->social_index)
       {
-        tell_player(p, " You don't want to be overly social do you?\n");
-        return 1;
+	tell_player(p, " You don't want to be overly social do you?\n");
+	return 1;
       }
       do_compound_social(p, &CompoundSocials[i], strptr);
       sys_flags = old_sys;
@@ -565,8 +561,8 @@ int match_social(player * p, char *str)
     {
       if (p->social_index)
       {
-        tell_player(p, " You don't want to be overly social do you?\n");
-        return 1;
+	tell_player(p, " You don't want to be overly social do you?\n");
+	return 1;
       }
       do_private_social(p, &PrivateSocials[i], strptr);
       sys_flags = old_sys;
@@ -1066,6 +1062,8 @@ void start_new_social(player * p, char *str)
   }
   *type++ = '\0';
 
+  lower_case(str);
+
   if (!isalpha(*str))
   {
     tell_player(p, " Socials must begin with a letter.\n");
@@ -1404,8 +1402,156 @@ void examine_social(player * p, char *str)
   stack = oldstack;
 }
 
+/* Two that I forgot ... */
+
+void edit_social(player * p, char *str)
+{
+  generic_social *soc;
+  int tool = 0;
+
+  if (social_index < 0)
+  {
+    tell_player(p, " No social commands are implemented at the moment.\n");
+    return;
+  }
+
+  if (p->social)
+  {
+    tell_player(p, " You may only work on one social at a time.\n");
+    return;
+  }
+  if (!(soc = find_social(str)))
+  {
+    TELLPLAYER(p, " There doesn't seem to be a '%s' social.\n", str);
+    return;
+  }
+
+  if (strcasecmp(soc->creator, p->name))
+  {
+    if (!(p->residency & ADMIN))
+    {
+      TELLPLAYER(p, " The social '%s' isnt yours to edit.\n", soc->command);
+      return;
+    }
+    tool++;
+  }
+
+  /* remove it from disk if its there */
+  sprintf(stack, "files/socials/%s", soc->command);
+  unlink(stack);
+
+  /* get it out of the array */
+  unlink_social(soc);
+
+  p->social = soc;
+
+  if (tool)
+  {
+    SUWALL(" -=*> %s starts editing the social %s (created by %s)\n",
+           p->name, soc->command, soc->creator);
+    LOGF("social", "%s starts editing the social %s (created by %s)",
+         p->name, soc->command, soc->creator);
+  }
+  else
+  {
+    SUWALL(" -=*> %s starts editing the social %s\n", p->name, soc->command);
+    LOGF("social", "%s starts editing the social %s", p->name, soc->command);
+  }
+
+  TELLPLAYER(p, " Now editing the social %s ...\n", soc->command);
+  show_commands_for_social(p);
+}
+
+void rename_social(player * p, char *str)
+{
+  char *newname, *ptr;
+  player *scan;
+  generic_social *soc;
+
+  if (social_index < 0)
+  {
+    tell_player(p, " No social commands are implemented at the moment.\n");
+    return;
+  }
+
+  if (!(newname = strchr(str, ' ')))
+  {
+    tell_player(p, " Format : rename_social <social> <new name>\n");
+    return;
+  }
+  *newname++ = 0;
+
+  if (!(soc = find_social(str)))
+  {
+    TELLPLAYER(p, " The '%s' social doesnt currently exist.\n", str);
+    return;
+  }
+
+  if (find_social(newname))
+  {
+    TELLPLAYER(p, " A '%s' social already exists.\n", newname);
+    return;
+  }
+
+  if (strcasecmp(soc->creator, p->name) && !(p->residency & ADMIN))
+  {
+    TELLPLAYER(p, " The social '%s' isnt yours to rename.\n", soc->command);
+    return;
+  }
+
+  if (!isalpha(*newname))
+  {
+    tell_player(p, " Socials must begin with a letter.\n");
+    return;
+  }
+
+  for (ptr = newname; (*ptr && *ptr != ' '); ptr++)
+  {
+    if (!issocia(*ptr))
+    {
+      tell_player(p, " Socials may contain only letters, numbers and a few "
+                     "different chars like _ ~ - for the command.\n");
+      return;
+    }
+  }
+
+  if (strlen(newname) < 3)
+  {
+    tell_player(p, " Social names must be at least 3 chars in length.\n");
+    return;
+  }
+
+  if (is_command(str))
+  {
+    TELLPLAYER(p, " That is already a talker command!\n");
+    return;
+  }
+
+  for (scan = flatlist_start; scan; scan = scan->flat_next)
+    if (scan->social && !strcasecmp(newname, scan->social->command))
+    {
+      tell_player(p, " Ouch, someone is working on a social by that name atm.\n");
+      return;
+    }
+
+  sprintf(stack, "files/socials/%s", soc->command);
+  unlink(stack);
+  unlink_social(soc);
+
+  strncpy(soc->command, newname, MAX_NAME - 1);
+
+  sync_social(soc);
+  init_socials();
+
+  TELLPLAYER(p, " Successfully renamed '%s' social to '%s'\n", str, newname);
+  LOGF("social", "%s renames '%s' social to '%s'", p->name, str, newname);
+  SW_BUT(p, " -=*> %s renames the social '%s' to '%s'\n", p->name, str, newname);
+}
+
+
+
 void socials_version(void)
 {
   if (social_index >= 0)
-    stack += sprintf(stack, " -=*> kRad Soshuls v1.1 (by phypor) enabled.\n");
+    stack += sprintf(stack, " -=*> kRad Soshuls v1.1 (by phypor) installed.\n");
 }

@@ -1,113 +1,195 @@
-# PLAYGROUND PLUS CONFIGURE SCRIPT
-# Written by Spire
+##########################################################################
 #
-# New setup script to try and automatically determine what we're running.
-# If this fails, call the old script to do it interactively.
-
-BASEDIR=`pwd`
-glibcline=
-
-echo "#" && echo "# Configuring Makefile for Playground+" && echo "#"
-
-# Get the operating system name
+# Playground Plus configuration script
+# copyright (c) Richard Lawrence 1999
 #
-echo -n "Checking host system type:         "
+# This script is distributed for and ONLY for the Playground Plus package. 
+# It may not be used in any other distribution without the prior permission
+# of the author. No reply to your request does NOT constitute permission.
+#
+##########################################################################
+
+# setup
+# script to work out your machine type and set up the makefile
+# by Richard 'Silver' Lawrence
+
+PG_VERSION=`egrep "\#define PG_VERSION" include/config.h | cut -d"\"" -f2`
+
+clear
+
+cat <<*END*
+
+ Playground Plus v$PG_VERSION configuration
+---------------------------------------------------------------------------
+
+ MAKEFILE CONFIGURATION
+
+ This configuration script will work out what type of UNIX you are
+ running and create the appropriate makefile for you.
+
+*END*
+
 uname_system=`uname -s 2>/dev/null` || uname_system=unknown
 uname_machine=`uname -m 2>/dev/null` || uname_system=unknown
 uname_release=`uname -r 2>/dev/null` || uname_release=unknown
 
-echo "$uname_machine $uname_system"
+sleep 2
+
+echo "    Host name              : `hostname`"
+echo "    Host system            : $uname_system"
+echo "    Host machine           : $uname_machine"
+echo "    Host release           : $uname_release"
+
+# convert slash to a dash
+uname_system=`echo $uname_system | sed "s#/#-#g"`
+
+makefile="unknown"
 
 case $uname_system in
-	Linux )
-		echo -n "Checking libc version:             "
-		echo "void main(void) { int foo=1; }" > libctest.c
-		cc -o libctest libctest.c 1>/dev/null 2>/dev/null
-		if [ -n "`objdump --private-headers libctest 2>/dev/null | grep libc.so.6`" ]; then
-			echo "glibc2 (libc.so.6)."
-			sourcemakefile=Makefile.Linux.glibc2
-			hosttype="$uname_machine-$uname_system-glibc1"
-			glibcline="GBLIC2 = 1"
-		else
-			echo "glibc1 (<=libc.so.5)."
-			sourcemakefile=Makefile.Linux.glibc1
-			hosttype="$uname_machine-$uname_system-glibc1"
-		fi
-		rm -f libctest libctest.c
-		;;
-	SunOS )
-		release_major=`echo $uname_release | cut -f 1 -d .`
-		echo -n "Checking specific OS:              "
-		case $release_major in
-			5 )
-				release_minor=`echo $uname_release | cut -f 2 -d .`
-				echo "Solaris 2.$release_minor"
-				sourcemakefile=Makefile.Solaris
-				hosttype="$uname_machine-Solaris-2"
-				;;
-			4 )
-				echo "SunOS $uname_release"
-				sourcemakefile=Makefile.SunOS
-				hosttype="$uname_machine-SunOS-4"
-				;;
-			* )
-				echo "Ancient SunOS"
-				sourcemakefile=Makefile.SunOS
-				hosttype="$uname_machine-SunOS-unknown"
-				;;
-		esac
-		;;
-	HPUX )
-		sourcemakefile=Makefile.HPUX
-		hosttype="$uname_machine-HPUX"
-		;;
-	Ultrix )
-		sourcemakefile=Makefile.Ultrix
-		hosttype="$uname_machine-Ultrix"
-		;;
-	IRIX* )
-		sourcemakefile=Makefile.IRIX
-		hosttype="$uname_machine-Irix"
-		;;
-	FreeBSD* )
-		sourcemakefile=Makefile.BSD
-		hosttype="$uname_machine-$uname_system"
-		;;
-	OpenBSD* )
-		sourcemakefile=Makefile.OpenBSD
-		hosttype="$uname_machine-$uname_system"
-		;;
-	* )
-		`which bash` configure/oldsetup
-		exit
-		;;
+  SunOS )
+    echo -n "    Specific OS            : "
+    release_major=`echo $uname_release | cut -f 1 -d .`
+    case $release_major in
+      5 )
+        release_minor=`echo $uname_release | cut -f 2 -d .`
+        echo "Solaris 2.$release_minor";
+        makefile="Solaris"
+        ;;
+      * )
+        echo "SunOS $uname_release"
+        makefile="SunOS"
+        ;;
+    esac
+    ;;
+
+  * )
+    uname_system=`ls configure/makefiles | grep -i "^$uname_system"`
+    if [ -f "configure/makefiles/$uname_system" ]
+    then
+      makefile="$uname_system"
+    else
+      echo -e "\n    No specific makefile for that system found"
+      echo -e "    Please choose from one of the following:\n"
+
+      ls -C configure/makefiles/ | sed "s/^/    /g"
+
+      echo -e "\n    option> \c"
+
+      read makefile
+      echo
+    fi
+    ;;
+
 esac
 
-echo "#"
-echo "# Found everything necessary, generating Makefile"
-echo "#"
-
-if [ ! -f configure/makefiles/$sourcemakefile ]; then
-	echo "Unable to find Makefile for $hosttype system!"
-	echo "(Looking for configure/$sourcemakefile)"
-	exit 1
+# check for a load of bits and bobs
+echo -n "    Checking               : headers.."   
+flags="-DNDEBUG"
+egrep -h "#include <.*\.h>" *.c | sed "s/ *#/#/g" | sort | uniq > temp.c
+gcc -E temp.c 1>temp.txt 2>/dev/null
+if [ -n "`egrep -i "extern * int * scandir * \(__const" temp.txt`" ]
+then
+ flags="$flags -DNEED_CONST_DIRENT"
 fi
+if [ -n "`egrep -i "typedef * unsigned * int * socklen_t;" temp.txt`" ]
+then
+ flags="$flags -DHAVE_SOCKLEN_T"
+fi
+if [ -n "`egrep -i "extern * int * sigemptyset *" temp.txt`" ]
+then
+ flags="$flags -DHAVE_SIGEMPTYSET"
+fi
+if [ -z "`egrep -i "extern * int * bind *" temp.txt`" ]
+then
+ flags="$flags -DNEED_BIND_DECL"
+fi
+if [ -z "`egrep -i "extern * int * listen *" temp.txt`" ]
+then
+ flags="$flags -DNEED_LISTEN_DECL"
+fi
+if [ -z "`egrep -i "extern * int * getitimer *" temp.txt`" ]
+then
+ flags="$flags -DNEED_GETITIMER_DECL"
+fi
+if [ -z "`egrep -i "extern * int * getrlimit *" temp.txt`" ]
+then
+ flags="$flags -DNEED_GETRLIMIT_DECL"
+fi
+if [ -z "`egrep -i "extern * char * \*crypt *" temp.txt`" ]
+then
+ flags="$flags -DNEED_CRYPT_DECL"
+fi
+rm -f temp.txt temp.c
 
-cp configure/makefiles/$sourcemakefile Makefile
+echo -n " crypt.."
+# check for crypt (and timelocal, since testing for the inclusion
+# of timelocal in the headers - like above - causes problems on
+# slackware boxes)
+libs=""
+cat > temp.c << *END*
+#include <time.h>
+void main(void)
+{
+  timelocal(0);
+  crypt(0,0);
+}
+*END*
+gcc temp.c -o temp.exe 2>temp.output
+if [ -n "`grep "crypt" temp.output`" ]
+then
+  libs="-lcrypt"
+fi
+if [ -n "`grep "timelocal" temp.output`" ]
+then
+  flags="$flags -DUSE_MKTIME"
+fi
+rm -f temp.c temp.exe temp.output
+echo " ok"   
 
-echo "#"
-echo "# Makefile sucessfully installed!"
+# allow for incorrect case
+makefile=`ls configure/makefiles | grep -i "^$makefile\$"`
 
-if [ ! -f include/autoconfig.h ]; then
-  echo "# You have no configuration file - starting 'make config' ..."
-  echo "#"
+if [ ! -f configure/makefiles/$makefile ]
+then
+  echo "    Error: Unable to find makefile for that OS. Aborting."
   echo
-  make config
+  exit
 fi
 
-echo "# You can now either run:"
-echo "#"
-echo "#  'make config' to see up configuration options"
-echo "#  or 'make install' to compile code"
-echo "#"
-exit
+echo "    Using details from     : makefiles/$makefile"   
+  
+. configure/makefiles/$makefile
+
+MF_OTHER_CFLAGS="$flags"
+if [ -n "$libs" ]
+then
+  MF_LIBS="$MF_LIBS $libs"
+fi
+
+echo "    Makefile description   : `echo $MF_OS`"
+echo "    Makefile o/s defines   : $MF_OS_CFLAGS"
+echo "    Makefile o/s libraries : $MF_LIBS"
+
+cat configure/Makefile.template | grep -v "^//" | sed -e "s/\*MF_DATE\*/$MF_DATE/g" \
+                                          -e "s/\*MF_OS\*/$MF_OS/g" \
+                                          -e "s/\*MF_AUTHOR\*/$MF_AUTHOR/g" \
+                                          -e "s/\*MF_OS_CFLAGS\*/$MF_OS_CFLAGS/g" \
+                                          -e "s/\*MF_OTHER_CFLAGS\*/$MF_OTHER_CFLAGS/g" \
+                                          -e "s/\*MF_LIBS\*/$MF_LIBS/g" \
+                                            >Makefile
+echo
+echo "    Makefile installed sucessfully"
+echo
+echo -n "    Press RETURN or ENTER to continue ... "
+read response
+
+if [ ! -f include/autoconfig.h ]
+then
+  bash configure/configure_code
+  echo
+  echo -n "    Press RETURN or ENTER to continue ... "
+  read response
+fi
+
+touch .depend
+

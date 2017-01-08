@@ -1,5 +1,5 @@
 /*
- * Playground+ - angel.c v1.6
+ * Playground+ - angel.c v1.7
  * Watches over the talker and reboots it when it goes down
  * ---------------------------------------------------------------------------
  *
@@ -31,6 +31,7 @@
 #if !defined(linux)
 #include <sys/filio.h>
 #endif /* LINUX */
+#include <assert.h>
 
 #include "include/config.h"
 #include "xstring.c"
@@ -66,8 +67,12 @@ char *end_string(char *str)
 
 void lower_case(char *str)
 {
+  assert(str);
   while (*str)
-    *str++ = tolower(*str);
+  {
+    *str = tolower((unsigned char)*str);
+    str++;
+  }
 }
 
 
@@ -77,10 +82,10 @@ void lower_case(char *str)
 char *sys_time(void)
 {
   time_t tt;
-  static char time_string[25];
+  static char time_string[27];
 
   tt = time(0);
-  strftime(time_string, 25, "%H:%M:%S - %d/%m/%y", localtime(&tt));
+  strftime(time_string, 27, "%H:%M:%S - %d/%m/%Y", localtime(&tt));
   return time_string;
 }
 
@@ -183,20 +188,20 @@ void sigchld(int c)
 
 int main(int argc, char *argv[])
 {
-#ifdef REDHAT5
+#ifdef HAVE_SOCKLEN_T
+  socklen_t length;
+#else
   unsigned int length;
-#else /* REDHAT5 */
-  int length;
-#endif /* !REDHAT5 */
+#endif /* HAVE_SOCKLEN_T */
   int status, alive_fd = 0, sock_fd, dieing;
   FILE *angel_pid_fd;
   struct sockaddr_un sa;
   char dummy;
   fd_set fds;
   struct timeval timeout;
-#if defined(hpux) | defined(linux)
+#if defined(hpux) | defined(linux) | defined(BSD3) | defined(NETBSD) | defined(BSDISH)
   struct sigaction siga;
-#endif /* hpux | linux */
+#endif /* hpux | linux | bsd3 | netbsd | bsdish */
 
   stack_start = (char *) malloc(1000);
   stack = stack_start;
@@ -245,16 +250,22 @@ int main(int argc, char *argv[])
   t = time(0);
   time_out = t + 60;
 
-#ifdef REDHAT5
+#ifdef HAVE_SIGEMPTYSET
   sigemptyset(&siga.sa_mask);
+#else
+  siga.sa_mask = 0;
 #endif
 
 #if defined(hpux) | defined(linux)
   siga.sa_handler = sigpipe;
-#ifndef REDHAT5
+
+#ifdef HAVE_SIGEMPTYSET
+  sigemptyset(&siga.sa_mask);
+#else
   siga.sa_mask = 0;
 #endif
   siga.sa_flags = 0;
+
   sigaction(SIGPIPE, &siga, 0);
   siga.sa_handler = sighup;
   sigaction(SIGHUP, &siga, 0);
@@ -311,7 +322,7 @@ int main(int argc, char *argv[])
     }
     crashes++;
     printf("\n\n");		/* Silly formatting reason :o) */
-    log("angel", "Playground+ guardian angel bootloader v1.6 (07.06.98)");
+    log("angel", "Playground+ guardian angel bootloader v1.7 (19.07.99)");
     dieing = 0;
     fh = fork();
     switch (fh)
@@ -322,7 +333,6 @@ int main(int argc, char *argv[])
 		get_config_msg("talker_name"));
 	argv[0] = server_name;
 	argv[1] = get_config_msg("port");
-/*      execvp("bin/talker", argv); */
 	execvp("bin/" TALKER_EXEC, argv);
 	error("failed to exec talk server!");
 	break;

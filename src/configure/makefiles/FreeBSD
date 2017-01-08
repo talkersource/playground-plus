@@ -1,0 +1,5 @@
+MF_DATE="20.06.1998"
+MF_OS="FreeBSD and other *BSD derritives"
+MF_AUTHOR="Chris Allegretta (astyanax)"
+MF_OS_CFLAGS="-DBSDISH"
+MF_LIBS=""

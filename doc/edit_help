@@ -1,0 +1,295 @@
+:11,editor,edit
+
+                              The Editor
+                              ----------
+
+  When you write a news posting, a mail message, or a room description, you
+will be placed into edit mode.  Whilst in this mode, everything you type
+will be entered into the editor (using your current paragraph style - see
+help .para), with these exceptions:
+
+                   .<command> - use an editor command
+                   /<command> - use a normal command
+
+  When viewing what you have written (.view, .l), moving around the editor
+(.bot, .top, .-, .+, .g), or replacing (.replace) and inserting text, you
+will be shown the current line, along with its line number to the left.  The
+star inbetween number and text shows that this is the current line - which
+is useful when viewing the entire text, or if you have padding (.pad) turned
+on.  
+
+  Please also see the help pages for specific commands, and also these help
+pages:  ranges, editor-commands, output
+
+:output
+
+  When you are shown text while in the editor, you will see the line numbers
+alongside all viewed lines.  These are useful for moving around the buffer,
+and for performing operaions such as moving blocks of text.  When you move
+in the editor, you will be shown the current line.  If you have padding
+turned on (lets say .. 2 lines), you will also be shown 2 lines above and
+below the current line, with a star by the line you're actually at.
+
+  If you activate pretty text, this means a newline will be printed before
+any editor lines, to aid visibility.  You can have this nicer formatting
+turned off (by setting pad and pretty off), or use the .format command to
+give even line entry a padded/tidied appearance.
+
+  When you enter a long line, and are seeing formatted output all the time,
+the current line will have a * by it as normal, but the other lines that
+were added in the operation will have - signs between the number and text.
+
+:ranges,range
+
+  Some commands in the EWe system can be used on more than 1 line at a time,
+using ranges.  Ranges take 3 forms:
+
+  1) A single value (2 for example)
+  2) A single range (3-6 for example, meaning lines 3,4,5 and 6)
+  3) A multiple range (3-6,9,13-14 for example, being lines 3,4,5,6,9,13,14)
+
+  Multiple ranges take commas between ranges/values, and dashes between the
+two numbers of a range.  If you specify a line more than once, the extra
+mentions will be ignored (3-6,5 still means 3,4,5,6).  Please note than
+ranges must always go from first to last, 6-2 for example is invalid!
+
+:editor-commands
+
+  Please see the specific help pages on each command for a full description.
+
+  Old familiars from the normal talker editor:
+  
+  .del		- delete some lines
+  .-		- go back a line
+  .+		- go forward a line
+  .view		- see what you've written
+  .l		- view the current line
+  .g		- goto a line
+  .top		- goto the top
+  .bot		- goto the bottom
+  .wipe		- completely clear the buffer
+  .stats	- show some stats about the buffer
+  .quiet	- toggle whether you go into 'quiet' mode when editing 
+  .end		- quit the editor and KEEP the changes
+  .quit		- quit the editor and THROW AWAY any changes
+
+  New EWe commands:
+
+  .move		- move some lines
+  .replace	- replace some lines
+  .trunc	- control the auto-truncation feature
+  .pretty	- toggle whether you get newline seperated output
+  .insert	- toggle whether you insert before or after current line
+  .para		- toggle the paragraph mode
+  .format	- toggle when special formatting appears
+  .s		- search for some text
+  .n		- repeat last search (next match)
+
+:del,.del
+
+  .del		- Delete the current line, or a selection of lines using a
+		  range.
+
+  Format: .del [multiple range]
+  See also: ranges
+
+:-,.-
+
+  .-		- Move up a line, the line will be displayed with the
+		  surrounding lines if padding is enabled.
+
+  Format: .-
+  See also: .pad, .pretty, output
+
+:+,.+
+
+  .+		- Move down a line, the line will be displayed with the
+		  surrounding lines if padding is enabled.
+
+  Format: .+
+  See also: .pad, .pretty, output
+
+:view,.view
+
+  .view		- View the entire editor buffer, with top/bottom boundary
+		  markers if padding is enabled.
+
+  Format: .view
+  Seel also: .pad, .pretty, output
+
+:l,.l
+
+  .l		- View the current line, or the current line with its
+		  surrounding lines if padding is enabled.
+
+  Format: .l
+  See also: .pad, .pretty, output
+
+:g,.g
+
+  .g		- Move to a certain line - it will be shown and the
+		  surrounding lines above/below if padding is enabled.
+
+  Format: .g <line>
+  See also: .pad, .pretty, output
+
+:top,.top
+
+  .top		- Move to the top of the editor buffer.  The line will be
+		  displayed along with the surrounding lines if padding is
+		  enabled.
+
+  Format: .top
+  See also: .pad, .pretty, output
+
+:bot,.bot
+
+  .bot		- Move to the bottom of the editor buffer.  The line will
+		  be displayed along with the surrounding lines if padding
+		  is enabled.
+
+  Format: .bot
+  See also: .pad, .pretty, output
+
+:wipe,.wipe
+
+  .wipe		- Does exactly what you think it might - all lines are
+		  erased!
+
+  Format: .wipe
+
+:stats,.stats
+
+  .stats	- Shows you the current number of lines, number of included
+		  lines (and percentage) and your editor settings.  It will
+		  also show the current search text and direction if one
+		  is set.
+
+  Format: .stats
+  See also: .pad, .pretty, .format, .trunc, .insert, .para, .quiet
+
+:quiet,.quiet
+
+  .quiet	- Toggle whether or not you go into quiet edit mode while in
+		  the editor, which blocks tells and shouts.
+
+  Format: .quiet
+
+:end,.end
+
+  .end		- Finish what you're writing.  If it is a news posting, it
+		  will be checked for having too much included text to new
+		  text, and will remain in edit mode if this fails.
+
+  Format: .end
+
+:quit,.quit
+
+  .quit		- Abort the editing!  Make no changes!  Useful for panic
+		  situations...
+
+  Format: .quit
+
+:move,.move
+
+  .move		- Move the current line, or a group of lines to a new line
+		  number.  When posting news, you will not be allowed to
+		  move lines that are included text.
+
+  Format: .move <line>			- Move the current line to <line>
+          .move [single range] <line>   - Move a selection to <line>
+  See also: ranges
+
+:replace,.replace
+
+  .replace	- Replace a line (or some lines) with a new line (or lines). 
+		  It is quite possible to replace a single line with a
+		  several line long sentence, and space will be made in the
+		  buffer if possible/needed if you have truncation active. 
+		  The new text will use your current paragraph setting.
+
+  Format: .replace <single range> <new text>
+  See also: ranges, output, .pad, .pretty, .format, .trunc, .para
+
+:trunc,.trunc
+
+  .trunc	- Turn on or change mode of auto-truncation.  This function
+		  allows the editor to scroll (delete) lines from the top of
+		  the buffer if you try to type too much.  It can be set to
+		  off, included, or all - meaning no truncation, delete only
+		  lines of included text, or delete any text.
+
+  Format: .trunc <off/included/all>
+
+:pretty,.pretty
+
+  .pretty	- Turn on or off pretty output.  This causes an extra
+		  newline to appear when you view lines of text, to aid
+		  visibility and sanity.
+
+  Format: .pretty [on/off]
+  See also: output, .format
+
+:insert,.insert
+
+  .insert	- Toggle insertion of newlines before or after the current
+		  line.  This now makes it possible to insert new text right
+		  at the top.
+
+  Format: .insert [on/off]
+  See also: .para
+
+:para,.para
+
+  .para		- Change paragraph mode.  Paragraph mode controls how newly
+		  entered lines are formatted, since a line of input can be
+		  several lines of text on the screen.  It can be set to
+		  off, for no paragraphing at all, 'ew2' for the old style
+		  of having the first line start at the edge, and following
+		  lines indented, and 'correct' for the correct style of
+		  paragraphing (first line indented).
+
+  Format: .para <off/ew2/correct>
+
+:pad,.pad
+
+  .pad		- Control how much padding you see either side of the
+		  current line while navigation/adding text.  A visibility
+		  aid.
+
+  Format: .pad <0-7)
+  See also: .pretty, .format, output
+
+:format,.format
+
+  .format	- Control when pretty text and padding appear if they have
+		  been selected.  It can be set to 'navigation', so that you
+		  only see pad lines and extra newlines when moving around
+		  the buffer or viewing it, or 'all' so that you see them
+		  while entering new lines or replacing existing ones.
+
+  Format: .format <navigation/all>
+  See also: output, .pad, .pretty, .replace
+
+:s,.s
+
+  .s		- Search for some text.  If you do not specify the
+		  direction to search in, you will start to search from
+		  the top of the buffer.  The search string and direction
+		  becomes your current search, which you can repeat with
+		  the .n command.
+
+  Format: .s [f/b] <text to search for>
+  See also: output, .replace, .n, .stats
+
+:n,.n
+
+  .n		- Repeat the last search.  If the last search was a top
+		  down one, then your search will continue forward.  This
+		  will search forwards or backwards according to the last
+		  search.
+
+  Format: .n
+  See also: output, .replace, .s, .stats
+
+:

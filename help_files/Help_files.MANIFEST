@@ -24,8 +24,10 @@ In the 'configuration' directory:
 
 PGPLUS.configuration		How to configure your talker
 PGPLUS.configuration2		Information for starting your talker
+PGPLUS.configure_script		How the configuration scripts work
 PGPLUS.converting		Converting from PG96 to PG+
 PGPLUS.customisation		How to customise your talker
+PGPLUS.dynamic_sites		Information for talkers on dynamic IP's
 PGPLUS.file_editing		Information on file editing
 PGPLUS.makefiles		Information on makefile options
 PGPLUS.softmsgs			Information about the soft messages
@@ -45,11 +47,10 @@ PGPLUS.spodlist			Information about the spodlist code
 In the 'misc' directory:
 
 PGPLUS.bugs			What to do when you find a bug
-PGPLUS.code_history		History of code releases
 PGPLUS.contact			How to contact the author
 PGPLUS.credits			Credits for Ew-Too
+PGPLUS.history			A history of PG96 and PG+
 PGPLUS.hints			Hints and tips
-PGPLUS.history			Playground history
 PGPLUS.intercom_security	Intercom security information
 PGPLUS.mailing_list		Information about the angel mailing list
 PGPLUS.mirroring		Information about mirror this code
@@ -57,5 +58,5 @@ PGPLUS.spooning			A message for spooners
 PGPLUS.versions			Version information
 PGPLUS.webpages			Information about pgplus logo
 
-Last updated 17.06.1998
+Last updated 11.10.1998
 Some details may be innacurate.

@@ -60,7 +60,7 @@ extern command_func     say, quit, pulldown, change_password, change_email,
                 assist_player, on_duty, barge, report_error,
                 clear_screen, confirm_password, inform_room_enter,
                 show_exits, blank_email, hang, dumb, undumb,
-                unconverse, unjail, go_colony, suthink, script,
+                unconverse, unjail, go_relaxed, suthink, script,
                 player_stats, go_comfy, mode, yoyo,
                 tell_friends, remote_friends, remote_think,
                 ad, adminemote, adminthink, sumotd, qwho_old,
@@ -133,7 +133,7 @@ extern command_func     view_mail_commands, exit_mail_mode, view_sent,
                 view_received, send_letter, read_letter, reply_letter,
                 delete_received, delete_sent, toggle_anonymous, lsu,
                 lnew, ignoreprefix, ignoreemoteprefix, set_time_delay,
-		forward_letter, editor_search_string, edit_search_and_replace,
+		forward_letter, editor_search_string, /*edit_search_and_replace,*/
 	        set_made_from, fake_nuke_player;
 
 extern command_func     player_flags_verbose,blank_list, spodlist_view,
@@ -145,24 +145,34 @@ extern command_func     adminsing, staff_list, purge_list, start_calc_spodlist,
                 calc_mailinglist, muffle, eightball, nwho, edit_file,
                 timeprompt, object_to_ressie, do_ping, grep, show_logs,
 		ttt_cmd, slots, byebye, prefer, set_icq, quit_with_message,
-		see_suhistory, xref_player_site, saved_warning,
+		see_suhistory, xref_player_site, saved_warning, fix_list,
                 list_couples, kill_angel, read_sent, spank, vscript,
-                show_spodlist, view_slots_panels, res_me;
+                show_spodlist, view_slots_panels, res_me, screen_newbies,
+                show_screen_queue, newbie_allow, newbie_deny, ammend_to_log,
+		get_ps, override, master_search_command, use_search;
 
 /* nunews extras */
 extern command_func     list_news_groups, toggle_news_login, news_help,
                 news_checkown_command, news_setsticky_command, news_stats,
                 remove_all_news_command, sus_news_list, sus_news_post,
-                sus_news_read;
+                sus_news_read, ad_news_list, ad_news_post, ad_news_read,
+		news_read_next;
 
 /* krad soshuls */
 extern command_func     examine_social, start_new_social, set_social_attribute,
                 sync_socials_command, load_socials_command, delete_social,
                 list_creators;
 
+/* extra ewe editor commands */
+extern command_func	edit_toggle_insert, edit_set_padding, edit_toggle_paragraph,
+		edit_toggle_autotruncate, edit_toggle_pretty, edit_toggle_formatting,
+		edit_move_lines, edit_replace_lines, edit_show_version, edit_help,
+		edit_search, edit_search_next;
+
 /* segtors multis */
 #ifdef ALLOW_MULTIS
-extern command_func     multi_block, multi_list, multi_idle;
+extern command_func     multi_block, multi_list, multi_idle, multi_remove,
+		multi_kill;
 #endif
 
 #ifdef COMMAND_STATS
@@ -198,16 +208,14 @@ extern command_func su_edit, motd_edit;
 extern command_func    list_robots, store_robot, unstore_robot;
 #endif
 
-#ifdef PRIV_CHANGE
 extern command_func change_command_privs;
-#endif
 
 #ifdef SEAMLESS_REBOOT
 extern command_func reboot_command;
 #endif
 
 extern command_func list_channels, join_channel, leave_channel, hichan,
-                    block_all_channels;
+                    block_all_channels, iu, ie, is, it, i_who;
 
 /* dummy commands for stack checks */
 
@@ -223,8 +231,21 @@ struct command  editor_list[] = {
    {"view", edit_view, 0, 0, 1, 0, 0},
    {"l", edit_view_line, 0, 0, 1, 0, 0},
    {"g", edit_goto_line, 0, 0, 1, 0, 0},
-   {"s", editor_search_string, 0, 0, 1, 0, 0},
-   {"sr", edit_search_and_replace, 0, 0, 1, 0, 0},
+   /* EWE ADDED */
+   {"insert", edit_toggle_insert, 0, 0, 1, 0, 0},
+   {"pad", edit_set_padding, 0, 0, 1, 0, 0},
+   {"para", edit_toggle_paragraph, 0, 0, 1, 0, 0},
+   {"trunc", edit_toggle_autotruncate, 0, 0, 1, 0, 0},
+   {"pretty", edit_toggle_pretty, 0, 0, 1, 0, 0},
+   {"format", edit_toggle_formatting, 0, 0, 1, 0, 0},
+   {"move", edit_move_lines, 0, 0, 1, 0, 0},
+   {"s", edit_search, 0, 0, 1, 0, 0},
+   {"n", edit_search_next, 0, 0, 1, 0, 0},
+   {"replace", edit_replace_lines, 0, 0, 1, 0, 0},
+   {"version", edit_show_version, 0, 0, 1, 0, 0},
+
+/*   {"s", editor_search_string, 0, 0, 1, 0, 0},*/
+/*   {"sr", edit_search_and_replace, 0, 0, 1, 0, 0},*/
    {"top", edit_goto_top, 0, 0, 1, 0, 0},
    {"bot", edit_goto_bottom, 0, 0, 1, 0, 0},
    {"end", edit_end, 0, 0, 1, 0, 0},
@@ -233,8 +254,8 @@ struct command  editor_list[] = {
    {"stats", edit_stats, 0, 0, 1, 0, 0},
    {"quiet", toggle_quiet_edit, 0, 0, 1, 0, 0},
    {"commands", edit_view_commands, 0, 0, 1, 0, 0},
-   {"?", help, 0, 0, 0, 0, 0},
-   {"help", help, 0, 0, 1, 0, 0},
+   {"?", edit_help, 0, 0, 0, 0, 0},
+   {"help", edit_help, 0, 0, 1, 0, 0},
    {0, 0, 0, 0, 0, 0, 0}
 };
 
@@ -278,6 +299,7 @@ struct command intercom_list[] = {
    {"close",close_intercom,SU,0,1,0,0},
    {"commands", view_intercom_commands, BASE,0, 1, 0,0},
    {"delete_server",delete_intercom_server,LOWER_ADMIN,0,1,0,0},
+   {"dynamic", intercom_dynamic, ADMIN, 0, 1, 0, 0},
    {"hide", intercom_hide, SU, 0, 1, 0, 0},
    {"home", intercom_home, 0, 1, 0},
    {"list",list_intercom_servers,BASE,0,1,0,0},
@@ -370,6 +392,7 @@ struct command  news_list[] =
 {
    {"check", list_news, 0, 0, 1, 0},
    {"view", list_news, 0, 0, 1, 0},
+   {"next", news_read_next, 0, 0, 1, 0},
    {"read", read_article, 0, 0, 1, 0},
    {"groups", list_news_groups, 0, 0, 1, 0},
    {"post", post_news, MAIL, 0, 1, 0},
@@ -504,19 +527,25 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"{", remote_others_friends, 0, 0, 1, 0, COMMc|SPAMc},
 {0, 0, 0, 0, 0, 0, 0},
 
-{"a(", adminsing, 0, 0, 0, 0, INVISc}, 
-{"a)", adminsing, 0, 0, 0, 0, INVISc}, 
-{"a*", adminthink, 0, 0, 0, 0, INVISc}, 
-{"a~", adminthink, 0, 0, 0, 0, INVISc}, 
-{"a\"", ad, 0, 0, 0, 0, INVISc}, 
-{"a\'", ad, 0, 0, 0, 0, INVISc}, 
-{"a;", adminemote, 0, 0, 0, 0, INVISc}, 
-{"a:", adminemote, 0, 0, 0, 0, INVISc}, 
+{"a(", adminsing, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc}, 
+{"a)", adminsing, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc}, 
+{"a*", adminthink, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc}, 
+{"a~", adminthink, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc}, 
+{"a\"", ad, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc}, 
+{"a\'", ad, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc}, 
+{"a;", adminemote, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc}, 
+{"a:", adminemote, (LOWER_ADMIN | ADMIN | ADC), 0, 0, 0, INVISc},
 {"abort", abort_shutdown, LOWER_ADMIN, 0, 1, 0, ADMINc|NOMATCHc},
 {"accept", acc_engage, BASE, 0, 1, 0, MISCc},
+{"adnews", ad_news_list, LOWER_ADMIN, 0, 1, 0, ADMINc},
+{"adpost", ad_news_post, LOWER_ADMIN, 0, 1, 0, ADMINc},
+{"adread", ad_news_read, LOWER_ADMIN, 0, 1, 0, ADMINc},
 {"aecho", echoall, ADMIN, 0, 1, 0, ADMINc},
 {"age", set_age, 0, 0, 1, 0, DESCc},
 {"all_delete", delete_all_items, ADMIN, 0, 1, 0, ITEMc},
+{"allow", newbie_allow, SU, 0, 1, 0, SUPERc},
+{"amend", ammend_to_log, PSU, 0, 1, 0, SUPERc},
+{"ammend", ammend_to_log, PSU, 0, 1, 0, INVISc},
 {"as", adminsing, LOWER_ADMIN|ADC, 0, 1, 0, ADMINc},
 {"ask", lesser_warn, (SU|WARN), 0, 1, 0, SUPERc|NOMATCHc},
 {"assist", assist_player, SU, 0, 1, 0, SUPERc|NOMATCHc},
@@ -566,7 +595,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"boot", boot_out, BUILD, 0, 1, 0, ROOMc},
 {"bop", bop_with_wielded_item, BASE, 0, 1, 0, ITEMc|SPAMc},
 {"bounce", bounce, 0, 0, 1, 0, MOVEc},
-{"bug", report_error, BASE, 0, 1, 0, MISCc},
+{"bug", report_error, 0, 0, 1, 0, MISCc},
 {"bump", bump_off, LOWER_ADMIN, 0, 1, 0, ADMINc|NOMATCHc},
 {"buy", buy_object, BASE, 0, 1, 0, ITEMc},
 {0, 0, 0, 0, 0, 0, 0},
@@ -588,9 +617,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"ch", cu, 0, 0, 1, 0, SPAMc|INVISc|F_SWEARc},
 {"ch_hi", chanhi, 0, 0, 1, 0, SYSc},
 {"chaccess", set_log_priv, ADMIN, 0, 1, 0, ADMINc},
-#ifdef PRIV_CHANGE
 {"change_command_privs", change_command_privs, HCADMIN, 0, 1, 0, ADMINc|NOMATCHc},
-#endif
 {"check", check, 0, 0, 1, 0, INFOc},
 {"chekc", check, 0, 0, 1, 0, (INFOc|INVISc)},
 {"chlim", change_player_limits, LOWER_ADMIN, 0, 1, 0, ADMINc},
@@ -640,6 +667,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"defrecon", define_recon_macro, BASE, 0, 1, 0, MISCc},
 {"delete", delete_item, BUILDER|ASU, 0, 1, 0, ITEMc},
 {"delete_social", delete_social, (SPECIALK | ADMIN), 0, 1, 0, SOCIALc},
+{"deny", newbie_deny, SU, 0, 1, 0, SUPERc},
 {"desc", set_description, 0, 0, 1, 0, DESCc},	
 {"description", set_description, 0, 0, 1, 0, (DESCc|INVISc)},
 {"dfcheck", dynamic_validate_rooms, ADMIN, 0, 1, 0, ADMINc},
@@ -675,9 +703,9 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"entermsg", set_enter_msg, 0, 0, 1, 0, DESCc},
 {"eo", recho_others_friends, ECHO_PRIV, 0, 1, 0, INVISc|SPAMc},
 {"ereply", ereply, 0, 0, 1, 0, COMMc|SPAMc},
-{"etrace", xref_player_email, ADMIN, 0, 1, 0, ADMINc}, 
+{"etrace", use_search, ADMIN, 0, 1, 0, ADMINc}, 
 {"evict", sneeze, (SU | ADMIN), HOUSE, 1, 0, SUPERc|NOMATCHc},
-{"ewall", emoted_wall, (LOWER_ADMIN | ADMIN), 0, 1, 0, ADMINc|NOMATCHc},
+{"ewall", emoted_wall, (LOWER_ADMIN | ADMIN), 0, 1, 0, ADMINc|NOMATCHc|SPAMc},
 {"examine", newexamine, 0, 0, 1, 0, INFOc},
 {"exclude", exclude, 0, 0, 1, 0, COMMc|M_SWEARc|SPAMc},
 {"exitmsg", set_exitmsg, BASE, 0, 1, 0, DESCc},
@@ -692,6 +720,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"find", listfind, LIST, 0, 1, 0, LISTc},
 {"finger", newfinger, 0, 0, 1, 0, INFOc},
 {"fingerpaint", fingerpaint, 0, 0, 1, 0, MISCc},
+{"fix_list", fix_list, ADMIN, 0, 1, 0, ADMINc},
 {"flirt", declare_flirt, LIST, 0, 1, 0, MISCc},
 {"flist", change_list_absolute, LIST, 0, 1, 0, LISTc},
 {"force", spank, ADMIN, 0, 1, 0, ADMINc|INVISc},
@@ -699,7 +728,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"friend", friend, LIST, 0, 1, 0, LISTc},
 {"friended", friended, BASE, 0, 1, 0, LISTc},
 {"friendblock", list_friendblock, LIST, 0, 1, 0, LISTc},
-{"fwho", qwho_old, 0, 0, 1, 0, (INFOc|LISTc)},
+{"fwho", qwho_old, LIST, 0, 1, 0, (INFOc|LISTc)},
 {0, 0, 0, 0, 0, 0, 0},
 
 {"gag", create_gag, 0, 0, 1, 0, MISCc},
@@ -718,16 +747,15 @@ struct command  complete_list[] = {	/* non alphabetic */
 {0, 0, 0, 0, 0, 0},
 
 #ifdef HC_CHANNEL
-{"h(", hs, 0, 0, 0, 0, INVISc}, 
-{"h)", hs, 0, 0, 0, 0, INVISc}, 
-{"h*", ht, 0, 0, 0, 0, INVISc}, 
-{"h~", ht, 0, 0, 0, 0, INVISc}, 
-{"h\"", hd, 0, 0, 0, 0, INVISc}, 
-{"h\'", hd, 0, 0, 0, 0, INVISc}, 
-{"h;", he, 0, 0, 0, 0, INVISc}, 
-{"h:", he, 0, 0, 0, 0, INVISc}, 
-{"hu", hd, HCADMIN, 0, 1, 0, ADMINc|SPAMc},
-{"hd", hd, HCADMIN, 0, 1, 0, INVISc|SPAMc},
+{"h(", hs, HCADMIN, 0, 0, 0, INVISc}, 
+{"h)", hs, HCADMIN, 0, 0, 0, INVISc}, 
+{"h*", ht, HCADMIN, 0, 0, 0, INVISc}, 
+{"h~", ht, HCADMIN, 0, 0, 0, INVISc}, 
+{"h\"", hd, HCADMIN, 0, 0, 0, INVISc}, 
+{"h\'", hd, HCADMIN, 0, 0, 0, INVISc}, 
+{"h;", he, HCADMIN, 0, 0, 0, INVISc}, 
+{"h:", he, HCADMIN, 0, 0, 0, INVISc}, 
+{"hd", hd, HCADMIN, 0, 1, 0, ADMINc|SPAMc},
 {"he", he, HCADMIN, 0, 1, 0, ADMINc|SPAMc},
 #endif /* HC_CHANNEL */
 {"help", help, 0, 0, 1, 0, (INFOc|MISCc)},
@@ -740,6 +768,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 #ifdef HC_CHANNEL
 {"hs", hs, HCADMIN, 0, 1, 0, ADMINc|SPAMc},
 {"ht", ht, HCADMIN, 0, 1, 0, ADMINc|SPAMc},
+{"hu", hd, HCADMIN, 0, 1, 0, ADMINc|SPAMc},
 {"hw", h_who, HCADMIN, 0, 1, 0, ADMINc},
 #endif /* HC_CHANNEL */
 {0, 0, 0, 0, 0, 0, 0},
@@ -753,8 +782,14 @@ struct command  complete_list[] = {	/* non alphabetic */
 #ifdef ALLOW_MULTIS
 {"idle_multi", multi_idle, 0, 0, 1, 0, INFOc},
 #endif
+#ifdef INTERCOM
+ {"ie", ie, BASE, 0, 1, 0, COMMc|SPAMc},
+#endif
 {"ignore", ignore, LIST, 0, 1, 0, LISTc},
 {"ignoremsg", set_ignore_msg, LIST, 0, 1, 0, DESCc},
+#ifdef INTERCOM
+ {"ih", iu, BASE, 0, 1, 0, INVISc|SPAMc},
+#endif
 {"inform", inform, LIST, 0, 1, 0, LISTc},
 #ifdef INTERCOM
 {"intercom", intercom_command, BASE, 0, 1, 0, COMMc|SPAMc},
@@ -764,7 +799,15 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"invite", invite, LIST, 0, 1, 0, LISTc},
 {"invites", invites_list, 0, 0, 1, 0, INFOc},
 {"irl_name", set_irl_name, BASE, 0, 1, 0, DESCc},
-{"itrace", xref_player_site, ADMIN, 0, 1, 0, ADMINc}, 
+#ifdef INTERCOM
+{"is", is, BASE, 0, 1, 0, COMMc|SPAMc},
+{"it", it, BASE, 0, 1, 0, COMMc|SPAMc},
+#endif
+{"itrace", use_search, ADMIN, 0, 1, 0, ADMINc}, 
+#ifdef INTERCOM
+{"iu", iu, BASE, 0, 1, 0, COMMc|SPAMc},
+{"iw", i_who, BASE, 0, 1, 0, INFOc},
+#endif
 {"iwho", informed_who, LIST, 0, 1, 0, (INFOc|LISTc)},
 {"ix", examine_item, BASE, 0, 1, 0, ITEMc},
 {0, 0, 0, 0, 0, 0, 0},
@@ -777,6 +820,9 @@ struct command  complete_list[] = {	/* non alphabetic */
 
 {"key", key, LIST, 0, 1, 0, LISTc},
 {"kill_angel", kill_angel, LOWER_ADMIN, 0, 1, 0, ADMINc|NOMATCHc},
+#ifdef ALLOW_MULTIS
+{"kill_multi", multi_kill, 0, 0, 1, 0, ADMINc|SYSc|NOMATCHc},
+#endif
 {0, 0, 0, 0, 0, 0},
 
 {"l", look, 0, 0, 1, 0, (ROOMc|INFOc)},
@@ -792,6 +838,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"liblist", library_list, BASE, 0, 1, 0, MISCc},
 {"linewrap", set_term_width, 0, 0, 1, 0, SYSc},
 {"list", view_list, LIST, 0, 1, 0, LISTc},
+{"list_all_notes", list_all_notes, HCADMIN, 0, 1, 0, ADMINc},
 {"list_builders", list_builders, 0, 0, 1, 0, ITEMc},
 {"list_chans", list_channels, BASE, 0, 1, 0, MISCc},
 {"list_couples", list_couples, 0, 0, 1, 0, MISCc}, 
@@ -897,16 +944,17 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"on_duty", on_duty, (PSU|SU), 0, 1, 0, SUPERc},
 {"on_lsu", on_lsu, LOWER_ADMIN, 0, 1, 0, ADMINc},
 {"oreply", echoreply, ECHO_PRIV, 0, 1, 0, COMMc|SPAMc},
+{"override", override, ASU, 0, 1, 0, SUPERc},
 {0, 0, 0, 0, 0, 0},
-
-{"p(", ps, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
-{"p)", ps, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
-{"p*", pt, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
-{"p~", pt, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
-{"p\"", pu, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
-{"p\'", pu, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
-{"p;", pe, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
-{"p:", pe, 0, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+ 
+{"p(", ps, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+{"p)", ps, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+{"p*", pt, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+{"p~", pt, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+{"p\"", pu, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+{"p\'", pu, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+{"p;", pe, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc}, 
+{"p:", pe, SPOD, 0, 0, 0, INVISc|SPAMc|F_SWEARc},
 {"passwd", change_password, 0, 0, 1, 0, INVISc},
 {"password", change_password, 0, 0, 1, 0, MISCc},
 {"pe", pe, SPOD, 0, 1, 0, COMMc|F_SWEARc|SPAMc},
@@ -928,11 +976,12 @@ struct command  complete_list[] = {	/* non alphabetic */
 #ifdef PC
 {"pseudo", psuedo_person, 0, 0, 1, 0, MISCc},
 #endif
-{"potty", go_colony, 0, 0, 1, 0, MOVEc},
+{"potty", go_relaxed, 0, 0, 1, 0, MOVEc},
 {"prefer", prefer, LIST, 0, 1, 0, LISTc},
 {"prs", paper_rock_scissors, 0, 0, 1, 0, MISCc},
 {"ps", ps, SPOD, 0, 1, 0, COMMc|F_SWEARc|SPAMc},
 {"pstats", player_stats, (PSU|SU), 0, 1, 0, SUPERc},
+{"psx", get_ps, ADMIN, 0, 1, 0, ADMINc},
 {"pt", pt, SPOD, 0, 1, 0, COMMc|F_SWEARc|SPAMc},
 {"pu", pu, SPOD, 0, 1, 0, COMMc|F_SWEARc|SPAMc},
 {"public", public_com, 0, 0, 1, 0, INVISc}, 
@@ -943,7 +992,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 
 {"quiet", go_quiet, 0, 0, 1, 0, MISCc},
 {"quit", byebye, 0, 0, 1, 0, MISCc},
-{"qwho", qwho_old, 0, 0, 1, 0, (INFOc|LISTc)},
+{"qwho", qwho_old, LIST, 0, 1, 0, (INFOc|LISTc)},
 {0, 0, 0, 0, 0, 0, 0},
 
 /* You should uncomment this if you change your priv rank titles
@@ -981,6 +1030,9 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"reload", reload, ( LOWER_ADMIN | ADMIN), 0, 1, 0, ADMINc},
 {"rm_list", remove_from_others_list, LIST, 0, 1, 0, LISTc},
 {"rm_move", remove_move, LOWER_ADMIN, 0, 1, 0, ADMINc|NOMATCHc},
+#ifdef ALLOW_MULTIS
+{"rm_multi", multi_remove, 0, 0, 1, 0, COMMc},
+#endif
 {"rm_note", dest_note, ADMIN, 0, 1, 0, ADMINc|NOMATCHc},
 {"rm_shout", remove_shout, (SU | ADMIN), 0, 1, 0, SUPERc|NOMATCHc},
 {"rm_sing", remove_sing, (SU | ADMIN), 0, 1, 0, SUPERc|NOMATCHc},
@@ -1005,9 +1057,11 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"save", do_save, BASE, 0, 1, 0, MISCc},
 {"say", say, 0, 0, 1, 0, COMMc|M_SWEARc|SPAMc},
 {"scare", fake_nuke_player, ASU, 0, 1, 0, SUPERc|NOMATCHc},
-{"screenlock", set_screenlock, 0, 0, 1, 0, MISCc},
+{"screen", screen_newbies, SU, 0, 1, 0, SUPERc},
+{"screenlock", set_screenlock, BASE, 0, 1, 0, MISCc},
 {"script", script, (SCRIPT), 0, 1, 0, MISCc},
 {"se", suemote, PSU, 0, 1, 0, SUPERc},
+{"search", master_search_command, SU, 0, 1, 0, SUPERc},
 {"seeecho", see_echo, 0, 0, 1, 0, SYSc},
 {"seesess", comments, 0, 0, 1, 0, (INFOc|MISCc)},
 {"seetitle", set_yes_session, 0, 0, 1, 0, SYSc},
@@ -1030,7 +1084,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"site_ban", sban, LOWER_ADMIN, 0, 1, 0, ADMINc|NOMATCHc},
 {"slist", set_list, LIST, 0, 1, 0, LISTc},
 {"slot_panels", view_slots_panels, 0, 0, 1, 0, MISCc},
-{"slots", slots, 0, 0, BASE, 0, MISCc},
+{"slots", slots, 0, 0, BASE, 0, MISCc|SPAMc},
 {"sneeze", sneeze, (SU | ADMIN), 0, 1, 0, SUPERc|NOMATCHc},
 {"snews", sus_news_list, (PSU | ADMIN), 0, 1, 0, SUPERc},
 {"spost", sus_news_post, (SU | ADMIN), 0, 1, 0, SUPERc},
@@ -1040,6 +1094,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"spod_class", set_spod_class, SPOD, 0, 1, 0, DESCc},
 {"spodlist", show_spodlist, 0, 0, 1, 0, INFOc},
 {"spods", show_spodlist, 0, 0, 1, 0, INFOc},
+{"squeue", show_screen_queue, SU, 0, 1, 0, SUPERc},
 {"sreply", sreply, 0, 0, 1, 0, COMMc|SPAMc},
 {"ss", susing, PSU, 0, 1, 0, SUPERc},
 {"st", suthink, PSU, 0, 1, 0, SUPERc},
@@ -1088,7 +1143,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"trans", trans_fn, 0, 0, 1, 0, MOVEc},
 {"treply", treply, 0, 0, 1, 0, COMMc|SPAMc},
 {"ttt", ttt_cmd, BASE, 0, 1, 0, MISCc},
-{"twall", thinkin_wall, (LOWER_ADMIN | ADMIN), 0, 1, 0, ADMINc|NOMATCHc},
+{"twall", thinkin_wall, (LOWER_ADMIN | ADMIN), 0, 1, 0, ADMINc|NOMATCHc|SPAMc},
 {"twho", twho, 0, 0, 1, 0, INFOc},
 {0, 0, 0, 0, 0, 0, 0},
 
@@ -1124,7 +1179,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 
 {"w", nwho, 0, 0, 1, 0, INFOc},
 {"wake", wake, 0, 0, 1, 0, MISCc},
-{"wall", wall, (LOWER_ADMIN | ADMIN), 0, 1, 0, ADMINc|NOMATCHc},
+{"wall", wall, (LOWER_ADMIN | ADMIN), 0, 1, 0, ADMINc|NOMATCHc|SPAMc},
 {"warn", warn, (WARN | SU), 0, 1, 0, SUPERc|NOMATCHc},
 {"wear", wear_item, BASE, 0, 1, 0, ITEMc},
 {"where", where, 0, 0, 1, 0, INFOc},
@@ -1137,8 +1192,8 @@ struct command  complete_list[] = {	/* non alphabetic */
 {0, 0, 0, 0, 0, 0, 0},
 
 {"x", newexamine, 0, 0, 1, 0, INFOc},
-{"xlock", set_screenlock, 0, 0, 1, 0, INVISc},
-{"xref", xref_name, (PSU|SU), 0, 1, 0, SUPERc}, 
+{"xlock", set_screenlock, BASE, 0, 1, 0, INVISc},
+{"xref", use_search, (PSU|SU), 0, 1, 0, SUPERc}, 
 {"xs", examine_social, 0, 0, 1, 0, SOCIALc},
 {0, 0, 0, 0, 0, 0, 0},
 

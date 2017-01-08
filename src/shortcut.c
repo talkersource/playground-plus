@@ -70,6 +70,20 @@ void AUWALL(char *format,...)
   stack = oldstack;
 }
 
+void SEND_TO_DEBUG(char *format,...)
+{
+  va_list argum;
+  char *oldstack;
+
+  oldstack = stack;
+  va_start(argum, format);
+  vsprintf(stack, format, argum);
+  va_end(argum);
+  stack = end_string(stack);
+  debug_wall(oldstack);
+  stack = oldstack;
+}
+
 #ifdef HC_CHANNEL
 void HCWALL(char *format,...)
 {

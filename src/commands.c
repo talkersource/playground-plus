@@ -55,50 +55,81 @@ void set_age(player * p, char *str)
 }
 
 
-/* set birthday */
-
-void old_set_birthday(player * p, char *str)
+void set_birthday(player * p, char *str)
 {
-  char *oldstack;
-  struct tm bday;
-  struct tm *tm_time;
+  struct tm bday, *tm_time;
   time_t the_time;
   int t;
 
-  the_time = time(0);
-  tm_time = localtime(&the_time);
-  oldstack = stack;
   if (!*str)
   {
-    tell_player(p, " Format: birthday <day>/<month>(/<year>)\n");
+    if (config_flags & cfUSUK)
+      tell_player(p, " Format: birthday <month>/<day>(/<year>)\n");
+    else
+      tell_player(p, " Format: birthday <day>/<month>(/<year>)\n");
     return;
   }
-  memset((char *) &bday, 0, sizeof(struct tm));
+
+  the_time = time(0);
+  tm_time = localtime(&the_time);
+
+
+  memset(&bday, 0, sizeof(struct tm));
   bday.tm_year = tm_time->tm_year;
-  bday.tm_mday = atoi(str);
 
-  if (!bday.tm_mday)
+  if (config_flags & cfUSUK)
   {
-    tell_player(p, " Birthday cleared.\n");
-    p->birthday = 0;
-    return;
-  }
-  if (bday.tm_mday < 0 || bday.tm_mday > 31)
-  {
-    tell_player(p, " Not a valid day of the month.\n");
-    return;
-  }
-  while (isdigit(*str))
+    bday.tm_mon = atoi(str);
+
+    if (!bday.tm_mon)
+    {
+      tell_player(p, " Birthday cleared.\n");
+      p->birthday = 0;
+      return;
+    }
+    if (bday.tm_mon <= 0 || bday.tm_mon > 12)
+    {
+      tell_player(p, " Not a valid month.\n");
+      return;
+    }
+    bday.tm_mon--;
+
+    while (isdigit(*str))
+      str++;
     str++;
-  str++;
-  bday.tm_mon = atoi(str);
-  if (bday.tm_mon <= 0 || bday.tm_mon > 12)
-  {
-    tell_player(p, " Not a valid month.\n");
-    return;
+    bday.tm_mday = atoi(str);
+    if (bday.tm_mday < 0 || bday.tm_mday > 31)
+    {
+      tell_player(p, " Not a valid day of the month.\n");
+      return;
+    }
   }
-  bday.tm_mon--;
+  else
+  {
+    bday.tm_mday = atoi(str);
 
+    if (!bday.tm_mday)
+    {
+      tell_player(p, " Birthday cleared.\n");
+      p->birthday = 0;
+      return;
+    }
+    if (bday.tm_mday < 0 || bday.tm_mday > 31)
+    {
+      tell_player(p, " Not a valid day of the month.\n");
+      return;
+    }
+    while (isdigit(*str))
+      str++;
+    str++;
+    bday.tm_mon = atoi(str);
+    if (bday.tm_mon <= 0 || bday.tm_mon > 12)
+    {
+      tell_player(p, " Not a valid month.\n");
+      return;
+    }
+    bday.tm_mon--;
+  }
   while (isdigit(*str))
     str++;
   str++;
@@ -118,37 +149,46 @@ void old_set_birthday(player * p, char *str)
       p->age = t / 31536000;
   }
 
-  sprintf(oldstack, " Your birthday is set to the %s.\n",
-	  birthday_string(p->birthday));
-  stack = end_string(oldstack);
-  tell_player(p, oldstack);
-  stack = oldstack;
+  TELLPLAYER(p, " Your birthday is set to the %s.\n",
+	     birthday_string(p->birthday));
 }
-
-
 
 /* recap someones name */
 
+
 void recap(player * p, char *str)
 {
-  char *oldstack;
   char *n;
   int found_lower;
   player *p2 = p;
 
-  oldstack = stack;
   if (!*str)
   {
     tell_player(p, " Format: recap <name>\n");
     return;
   }
-  strcpy(stack, str);
-
-  if (strcasecmp(stack, p->lower_name))
+  if (strcasecmp(str, p->lower_name))
   {
-    tell_player(p, " You can only recap your own name.\n");
-    return;
+    if (!(config_flags & cfSUSCANRECAP) || !(p->residency & SU))
+    {
+      tell_player(p, " You can only recap your own name.\n");
+      return;
+    }
+    if (!(p2 = find_player_absolute_quiet(str)))
+    {
+      TELLPLAYER(p, " Noone by the name '%s' on atm.\n", str);
+      return;
+    }
+    if (!check_privs(p->residency, p2->residency))
+    {
+      TELLPLAYER(p, " That would really make %s angry tho...\n", p2->name);
+      TELLPLAYER(p2, " -=*> %s failed an attempt to recap you.\n", p->name);
+      return;
+    }
   }
+
+
+
   if (!(config_flags & cfCAPPEDNAMES))
   {
     found_lower = 0;
@@ -172,19 +212,13 @@ void recap(player * p, char *str)
   }
 
   strcpy(p2->name, str);
-  sprintf(stack, " Name changed to '%s'\n", p2->name);
-  stack = end_string(stack);
-  tell_player(p, oldstack);
-  stack = oldstack;
+  TELLPLAYER(p, " Name changed to '%s'\n", p2->name);
   if (!(p == p2))
   {
-    sprintf(stack, " -=*> %s recapped %s!\n", p->name, p2->name);
-    stack = end_string(stack);
-    su_wall_but(p, stack);
-    stack = oldstack;
+    SW_BUT(p, " -=*> %s ReCaPPeD %s!\n", p->name, p2->name);
+    LOGF("recap", "%s recapped %s ...", p->name, p2->name);
   }
 }
-
 
 /* see the time */
 /* The standard EW2 code is aweful for this command - so lets rewrite it */
@@ -223,12 +257,13 @@ void view_time(player * p, char *str)
 		   word_time(time(0) - up_date), convert_time(up_date), number2string(logins));
 
   if (logperhour != -1)
+  {
     stack += sprintf(stack, " The average number of logins per hour is %.1f", logperhour);
-  if (logperday != -1)
-    stack += sprintf(stack, " (%.1f per day)\n", logperday);
-  else
-    stack += sprintf(stack, ".\n");
-
+    if (logperday != -1)
+      stack += sprintf(stack, " (%.1f per day)\n", logperday);
+    else
+      stack += sprintf(stack, ".\n");
+  }
   stack += sprintf(stack, " Most people on so far since the last reboot was %d.\n", max_ppl_on_so_far);
 
   if (p->residency & PSU)
@@ -278,6 +313,7 @@ void check_idle(player * p, char *str)
   }
 #endif
 
+/* removed for 1.0.8 patch
 #ifdef ALLOW_MULTIS
   if (isdigit(*str))
   {
@@ -285,6 +321,7 @@ void check_idle(player * p, char *str)
     return;
   }
 #endif
+*/
 
   oldstack = stack;
   command_type |= SEE_ERROR;
@@ -520,10 +557,10 @@ void set_title(player * p, char *str)
   strncpy(p->title, str, MAX_TITLE - 3);
   if (emote_no_break(*str))
     TELLPLAYER(p, " You change your title so that now you are known as "
-	       "...\n%s%s\n", p->name, p->title);
+	       "...\n%s%s^N\n", p->name, p->title);
   else
     TELLPLAYER(p, " You change your title so that now you are known as "
-	       "...\n%s %s\n", p->name, p->title);
+	       "...\n%s %s^N\n", p->name, p->title);
 }
 
 void set_pretitle(player * p, char *str)
@@ -615,14 +652,20 @@ void set_plan(player * p, char *str)
 
 void set_prompt(player * p, char *str)
 {
-  char *oldstack;
+  char *dt;
 
-  oldstack = stack;
+  if ((dt = strchr(str, '&')) &&
+      (*(dt + 1) == 'r' || *(dt + 1) == 'a' || *(dt + 1) == 'c'))
+  {
+    tell_player(p, " You really dont want that dynatext in your prompt do ya?\n");
+    return;
+  }
+
   strncpy(p->prompt, str, MAX_PROMPT - 3);
-  sprintf(stack, " You change your prompt to %s\n", p->prompt);
-  stack = end_string(stack);
-  tell_player(p, oldstack);
-  stack = oldstack;
+  if (!p->prompt[0])
+    tell_player(p, " You turn off your prompt.\n");
+  else
+    TELLPLAYER(p, " You change your prompt to %s\n", p->prompt);
 }
 
 void set_converse_prompt(player * p, char *str)
@@ -724,6 +767,9 @@ void quit(player * p, char *str)
 {
   p->flags |= CHUCKOUT;
 
+  if (p->ttt_opponent)
+    ttt_abort(p, 0);
+
   disconnect_channels(p);
 #ifdef ALLOW_MULTIS
   remove_from_multis(p);
@@ -731,8 +777,7 @@ void quit(player * p, char *str)
 
   if (!str)
     p->flags |= PANIC;
-  else
-    tell_player(p, "^N\n");
+  tell_player(p, "^N\n");
 
   /* Clean up lists */
 
@@ -1234,7 +1279,7 @@ void set_favorites(player * p, char *str)
       sprintf(stack, " 1. %-12.12s : %s\n", firster, nexter);
     }
     else
-      strcpy(stack, "1. Not set.\n");
+      strcpy(stack, " 1. Not set.\n");
     stack = strchr(stack, 0);
     strcpy(firster, "");
 
@@ -1287,7 +1332,7 @@ void set_favorites(player * p, char *str)
 	p->favorite3[0] = 0;
 	break;
       default:
-	tell_player(p, " Erk,,, got a bug here...\n");
+	tell_player(p, " Erk, got a bug here...\n");
 	log("error", "Error in set_favorite");
 	return;
     }
@@ -1311,7 +1356,13 @@ void set_favorites(player * p, char *str)
       strncpy(p->favorite1, arg_two, MAX_SPODCLASS - 3);
       strcpy(firster, p->favorite1);
       nexter = next_space(firster);
-      *nexter++ = 0;
+      if (*nexter)
+        *nexter++ = 0;
+      else
+      {
+        tell_player(p, " Format: favorite <#> <set to> (# = 1 2 or 3)\n");
+        return;
+      }
       if (strstr(firster, "^"))
       {
 	tell_player(p, " Sorry, but you can't have colours in your favourite title.\n");
@@ -1325,7 +1376,13 @@ void set_favorites(player * p, char *str)
       strncpy(p->favorite2, arg_two, MAX_SPODCLASS - 3);
       strcpy(firster, p->favorite2);
       nexter = next_space(firster);
-      *nexter++ = 0;
+      if (*nexter)
+        *nexter++ = 0;
+      else
+      {
+        tell_player(p, " Format: favorite <#> <set to> (# = 1 2 or 3)\n");
+        return;
+      }
       if (strstr(firster, "^"))
       {
 	tell_player(p, " Sorry, but you can't have colours in your favourite title.\n");
@@ -1339,7 +1396,13 @@ void set_favorites(player * p, char *str)
       strncpy(p->favorite3, arg_two, MAX_SPODCLASS - 3);
       strcpy(firster, p->favorite3);
       nexter = next_space(firster);
-      *nexter++ = 0;
+      if (*nexter)
+        *nexter++ = 0;
+      else
+      {
+        tell_player(p, " Format: favorite <#> <set to> (# = 1 2 or 3)\n");
+        return;
+      }
       if (strstr(firster, "^"))
       {
 	tell_player(p, " Sorry, but you can't have colours in your favourite title.\n");
@@ -1552,76 +1615,6 @@ void newsetpw1(player * p, char *str)
   }
 }
 
-
-/* set birthday -- american style */
-
-void set_birthday(player * p, char *str)
-{
-  char *oldstack;
-  struct tm bday;
-  struct tm *tm_time;
-  time_t the_time;
-  int t;
-
-  the_time = time(0);
-  tm_time = localtime(&the_time);
-  oldstack = stack;
-  if (!*str)
-  {
-    tell_player(p, " Format: birthday <month>/<day>(/<year>)\n");
-    return;
-  }
-  memset((char *) &bday, 0, sizeof(struct tm));
-  bday.tm_year = tm_time->tm_year;
-  bday.tm_mon = atoi(str);
-
-  if (!bday.tm_mon)
-  {
-    tell_player(p, " Birthday cleared.\n");
-    p->birthday = 0;
-    return;
-  }
-  if (bday.tm_mon <= 0 || bday.tm_mday > 12)
-  {
-    tell_player(p, " Not a valid month.\n");
-    return;
-  }
-  bday.tm_mon--;
-  while (isdigit(*str))
-    str++;
-  str++;
-  bday.tm_mday = atoi(str);
-  if (bday.tm_mday <= 0 || bday.tm_mday > 31)
-  {
-    tell_player(p, " Not a valid day of the month.\n");
-    return;
-  }
-  while (isdigit(*str))
-    str++;
-  str++;
-  while (strlen(str) > 2)
-    str++;
-  bday.tm_year = atoi(str);
-  if (bday.tm_year == 0)
-  {
-    bday.tm_year = tm_time->tm_year;
-    p->birthday = TIMELOCAL(&bday);
-  }
-  else
-  {
-    p->birthday = TIMELOCAL(&bday);
-    t = time(0) - (p->birthday);
-    if (t > 0)
-      p->age = t / 31536000;
-  }
-
-  sprintf(oldstack, " Your birthday is set to the %s.\n",
-	  birthday_string(p->birthday));
-  stack = end_string(oldstack);
-  tell_player(p, oldstack);
-  stack = oldstack;
-}
-
 void set_made_from(player * p, char *str)
 {
   char *oldstack;
@@ -1659,7 +1652,6 @@ void calc_mailinglist(player * p, char *str)
       {
 	switch (scanlist->residency)
 	{
-	  case STANDARD_ROOMS:
 	  case BANISHED:
 	  case BANISHD:
 	  case SYSTEM_ROOM:
@@ -1732,7 +1724,7 @@ void nwho(player * p, char *str)
   if (page > pages)
     page = pages;
 
-  sprintf(stack, "--- [Name] ----------- [Position] ----------[Idle] "
+  sprintf(stack, "--- [Name] ----------- [Position] --------- [Idle] "
 	  "------- [Location] -----");
   stack = strchr(stack, 0);
   strcpy(stack, "\n");
@@ -1795,7 +1787,7 @@ void nwho(player * p, char *str)
 
 /* location */
 
-      if ((!strcmp(scan->location->owner->lower_name, "main") ||
+      if ((!strcmp(scan->location->owner->lower_name, SYS_ROOM_OWNER) ||
 	   !strcmp(scan->location->owner->lower_name, "system")))
       {
 	if (!strcmp(scan->location->id, "room"))
@@ -2001,7 +1993,7 @@ char *is_invalid_email(char *email)
 
 int set_players_email(player * p, char *str)
 {
-  char *oldstack = stack, *inval;
+  char *oldstack = stack, *inval, olde[MAX_EMAIL];
   struct stat sbuf;
 
   if (!*str)
@@ -2029,17 +2021,34 @@ int set_players_email(player * p, char *str)
     return -1;
   }
 
+  if (strlen(str) > MAX_EMAIL -1)
+  {
+    tell_player(p, " That email address is too long for the talker.\n"
+                   "  Please use a shorter one, or see a member of staff.\n");
+    return -1;
+  }
+
   /* ok, new str is kosher for email... lets set eeet */
 
   if (!p->email[0])
+  {
     LOGF("help", "%s %s (new email set)", p->name, str);
+    strcpy(olde, "<BLANK>");
+  }
+  else if (p->email[0] == ' ')
+    strcpy(olde, "<VALIDATED>");
+  else if (p->email[0] == 2)
+    strcpy(olde, "<NOT YET SET>");
+  else
+    strncpy(olde, p->email, MAX_EMAIL - 1);
 
   strncpy(p->email, str, MAX_EMAIL - 1);
   if (p->saved)
     strncpy(p->saved->email, str, MAX_EMAIL - 1);
 
   TELLPLAYER(p, " Your email address is set to : %s\n", p->email);
-  LOGF("emails", "%s email set to %s", p->name, p->email);
+  LOGF("emails", "%s email set to %s\n                      (was %s)",
+       p->name, p->email, olde);
   AUWALL(" -=*> %s sets %s email to %s\n", p->name,
 	 gstring_possessive(p), p->email);
 
@@ -2051,12 +2060,12 @@ int set_players_email(player * p, char *str)
       return 0;
     }
 /*
-    sprintf(stack,
-	  "mail -s 'Welcome message to %s@%s' %s < files/email_welcome.msg",
-	    p->name, p->inet_addr, p->email);
-*/
-      sprintf (stack, get_config_msg ("emailer_call"), p->name, 
-               p->inet_addr, p->email);
+   sprintf(stack,
+   "mail -s 'Welcome message to %s@%s' %s < files/email_welcome.msg",
+   p->name, p->inet_addr, p->email);
+ */
+    sprintf(stack, get_config_msg("emailer_call"), p->name,
+	    p->inet_addr, p->email);
 
 
     stack = end_string(stack);
