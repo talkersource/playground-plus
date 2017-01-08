@@ -6,7 +6,7 @@
           |   |                                          _  /   _    /
           `---' A stable and bug free version           /_)/(_(/_)  o
                   of PG 96 with additional features! . /                       
-                                                    (_/   v1.0.10
+                                                    (_/   v1.0.11
                 
                  Written by Silver, phypor and blimey and based
                       upon Elsewhere-Too by Simon Marsh.

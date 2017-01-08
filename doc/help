@@ -1,6 +1,6 @@
 :0,general,newbie
 
- &t Online Help
+ <T:name> Online Help
 
    The easiest way to use HELP is to start with HELP INDEX and then go
    through all the pages - HELP 1, HELP 2, etc ...
@@ -11,7 +11,7 @@
    relevant help will be shown.
 
    If you think you've found an error or a missing help file then please
-   let the admin know by sending email to &e.
+   let the admin know by sending email to <T:email>.
 
    Original help files written by traP, astyanax and Indiefan. Additional
    files, updates and presentation changes by Silver and enigma.
@@ -207,16 +207,16 @@ the page being redrawn.
         Example     emote smiles at you. | alice,astyanax
 
         You will see : 
-                You emote : &m->n smiles at alice and astyanax.
+                You emote : <M:name> smiles at alice and astyanax.
 
         alice sees (as a personal message)
-                &m->n smiles at you and astyanax.
+                <M:name> smiles at you and astyanax.
 
         astyanax sees (as a personal message)
-                &m->n smiles at alice and you.
+                <M:name> smiles at alice and you.
 
         Everyone else in the room sees (as a room message) :
-                &m->n smiles at alice and astyanax.
+                <M:name> smiles at alice and astyanax.
 
 :15,chan,channel
 
@@ -260,7 +260,7 @@ COLORIZE - Without an argument, it will show you your current system colors.
 	   With arguments, it will change your color settings for one type of
 	   command.
 
-Good luck, and any questions should be relayed to &e.
+Good luck, and any questions should be relayed to <T:email>.
 
 :17,aliases,define,undefine,lsa,alias
 
@@ -628,7 +628,7 @@ Advertising our talker elsewhere on the Internet:
 	  to talkers
 
 		(if you want to link it to your home page, do this:)
-	 	<A HREF = "telnet://site.com:port/"> Link to &t </A>	
+	 	<A HREF = "telnet://site.com:port/"> Link to <T:name> </A>	
 
 	* Email:  Mail your friends, not random people ;)
 	* Other:  Your own best judgment, based on these guidelines.
@@ -957,7 +957,7 @@ BOUNCE    - takes you to a random room.
 
 BUG -  Report an error in the program. Please be as specific as
        possible. If the description of the bug won't fit, then send an
-       internal mail to the admins or to &e.
+       internal mail to the admins or to <T:email>.
 
 :builder_rules,brules,b_rules,b.rules,b-rules
 
@@ -1102,11 +1102,11 @@ Here are some examples of its use..
 
 ->ckban 0.0.0.0
 Site is totally banned.
-Banned by: &m->n
+Banned by: <M:name>
 Reason: # Constant harassment of other users.
 ->ckban 255.255.255.0
 Site is banned to new users.
-Banned by: &m->n
+Banned by: <M:name>
 Reason: # people keep shouting addresses to other talkers
 ->ckban 128.58.99.69
 That site doesn't appear to be banned.....
@@ -1297,13 +1297,13 @@ join_chan silver
  You don't really want to name your channel after a person... do you?
 join_chan test
  No match of the name 'test' found in files.
-) [test] ++ &m->n joins this channel ++
+) [test] ++ <M:name> joins this channel ++
 < test waves
-) [test] &m->n waves
+) [test] <M:name> waves
 > test allo!
-) [test] &m->n says 'allo!'
+) [test] <M:name> says 'allo!'
 leave_chan test
-) [test] -- &m->n leaves this channel --
+) [test] -- <M:name> leaves this channel --
 
 :dumb
 
@@ -1340,8 +1340,8 @@ ECHO <message>  - sends a "semi-anonymous" message to everyone in the
 -=> ECHO is aliased to +
 
 you type  You see          People with seeecho off/on see    
-+Boo!     You echo: Boo!   + Boo!               + [&m->n] Boo!
-echo hi.  You echo: hi.    + hi.                + [&m->n] hi.
++Boo!     You echo: Boo!   + Boo!               + [<M:name>] Boo!
+echo hi.  You echo: hi.    + hi.                + [<M:name>] hi.
 
 (the '+' symbol means that the text was an echo. whether the + is seen or
  not is controlled by the 'show' command).
@@ -1353,7 +1353,7 @@ EDCASH <player> [-]<amount to give/take> - edit how much cash a person has
 :edfirst
 
 EDFIRST <player> [-] <time in days>  - edit the time of a person's first
-                                       login to &t
+                                       login to <T:name>
 
 :edidle
 
@@ -1383,7 +1383,7 @@ who is logged on, and is on YOUR list as a friend.
 
 eg: 
 
-  tf hi      &m->n tells &g friends 'hi'
+  tf hi      <M:name> tells <M:hisher> friends 'hi'
 
 :email
 
@@ -1403,14 +1403,14 @@ EMOTE <action>  - this is the most "general" type of communication. It
                   "extras" added on and sends it to everyone in the same
                   room as you.
 
-eg:  emote giggles            &m->n giggles
-     emote blinks at you.     &m->n blinks at you.
+eg:  emote giggles            <M:name> giggles
+     emote blinks at you.     <M:name> blinks at you.
 
 Note: * EMOTE is aliased to : and ;
       * If your "action" begins with a ' symbol, the program assumes you
         want to "squeeze" the line together. eg:
  
-	emote 'll be right back.     &m->n'll be right back.
+	emote 'll be right back.     <M:name>'ll be right back.
 
 :entermsg
 
@@ -1439,12 +1439,12 @@ exclude trap hey everyone! it's trap's birthday! Shhhhh...
 
    everyone but trap sees:
 
-&m->n says to everyone but trap 'hey everyone! it's trap's 
+<M:name> says to everyone but trap 'hey everyone! it's trap's 
     birthday! Shhhhh...'
 
    trap sees:
 
-&m->n tells everyone in the room something about you.
+<M:name> tells everyone in the room something about you.
 
 (if you abuse this, be ready - cause the SUs will be watching =) )
 
@@ -1853,7 +1853,7 @@ Example:
 
 When Deathboy tries to talk to you he'll get:
  
-  &m->n doesn't want to talk to you
+  <M:name> doesn't want to talk to you
 
 :index
 
@@ -2030,7 +2030,7 @@ This is aliased to "list_new"
 
 :lso,list_obj,list_objects
 
-LSO [!]<$(+-)price|(+-)flag|&&creator|*|(1st char)>  - List all available
+LSO [!]<$(+-)price|(+-)flag|&creator|*|(1st char)>  - List all available
                                                       items.
 
 Arguments:
@@ -2133,6 +2133,40 @@ Note: * You don't *have* to specify a password but it's a good idea if you
 MARRY <person1> <person2>  - marries two people
 
 Note: * Both people must be logged on or this will fail.
+
+:masks
+
+  Masks are tags that are dynamically replaced with specific information.
+
+  Masks must be typed in full capital letters, or they will not work.
+
+  The following masks are available:
+
+  <^NUSERNAME>      The name of the current player
+  <^NUSERGENDER1>   The gender of the current player (its, his, her)
+  <^NUSERGENDER2>   The gender of the current player (it, he, she)
+  <^NUSERGENDER3>   The gender of the current player (it, him, her)
+  <^NUSERPREFIX>    The prefix of the current player
+  <^NSFX>           A random sound effect (e.g., <SFX>)
+  <^NTHING>         A random object (e.g., <THING>)
+  <^NATHING>        A random object, prefixed with 'a' or 'an'.
+  <^NDESCRIBE>      A random adjective (e.g., <DESCRIBE>)
+  <^NOBJECTNAME>    The name of the object (where applicable)
+  <^NTARGET>        The name of the target (where applicable)
+  <^NTGENDER>       Target's gender (its, his, her)
+  <^NTGENDER2>      Target's gender (it, he, she)
+  <^NTGENDER3>      Target's gender (it, him, her)
+  <^NXSFX>          A random sound effect
+  <^NXTHING>        A random object
+  <^NXDESCRIBE>     A random adjective
+
+  Note that everybody sees the same things when you specify <^NSFX>,
+  <^NTHING>, <^NATHING> or <^NDESCRIBE>, and the code picks a new item
+  each time you use it.
+
+  Conversely, <^NXSFX>, <^NXTHING> and <^NXDESCRIBE> generate
+  a new random word/phrase each time they are seen - so the chances
+  are that everybody will see different words.
 
 :mball
 
@@ -2357,7 +2391,7 @@ a password already set then you'll need to enter that one first.
 PEMOTE <message>  - just like EMOTE, except it puts 's at the end of your
                     name.
 
-eg:    pemote dog is cool       &m->n's dog is cool
+eg:    pemote dog is cool       <M:name>'s dog is cool
      
 (if your name ends in s, then it does this..)
 
@@ -2473,7 +2507,7 @@ Playground+:    A stable bugfixed and improved version of Playground96
 
 The following is a list of features that appears in neither Summink, nor the
    older EW-too codes that were released to the public, but do exist here 
-	 on &t, and will be in any release of Playground code.
+	 on <T:name>, and will be in any release of Playground code.
 
 Builders (create, destroy items, lsb, lso)
 Items (inv, wear, wield, buy, sell, eat, play, give)
@@ -2537,7 +2571,7 @@ PREMOTE <player(s)> <message>  - sends a PEMOTE to a specific list of
 
 -=> PEMOTE is aliased to <: <; ,; ,:
 
-<: astyanax disk drive crashed =(      &m->n's disk drive crashed =(   
+<: astyanax disk drive crashed =(      <M:name>'s disk drive crashed =(   
 
 :privs
 
@@ -2567,7 +2601,7 @@ PRS CLEAR                           - Cancel a game.
 
 If they have not already challenged you then they will get the message:
 
-  &m->n wants to play paper-rock-scissors against you
+  <M:name> wants to play paper-rock-scissors against you
 
 otherwise you will be informed of who has one.
 
@@ -2647,7 +2681,7 @@ RECHO <player(s)> <msg>  - sends an ECHO to a specific list of people.
 
 -=> RECHO is aliased to -
 
-- erland mooooo              + [&m->n] mooooo  (only erland sees this)
+- erland mooooo              + [<M:name>] mooooo  (only erland sees this)
 
 :recount,recount_snews
 
@@ -2676,7 +2710,7 @@ REMOTE <player(s)> <action>  - sends an EMOTE to a specific list of
 
 -=> REMOTE is aliased to < and ,
 
-,snowie giggles         &m->n giggles    (only snowie will see this)
+,snowie giggles         <M:name> giggles    (only snowie will see this)
 
 :rename
 
@@ -2828,8 +2862,8 @@ Decorating your room
 
 Firstly you need to decide the name of your room. This is the description
 that people see when they type WHERE. Don't forget to include the word
-"in" otherwise people will see "&m->n is the forest" rather than
-"&m->n is in the forest".
+"in" otherwise people will see "<M:name> is the forest" rather than
+"<M:name> is in the forest".
 
 ROOM NAME <title>  - Set the name of your room.
 
@@ -2932,7 +2966,7 @@ RSING       - sends a SING to a specific list of people.
 
 Format: rsing <player(s)> <message>
 
-(astyanax yeah yeah yeah        &m->n sings to you o/~ yeah yeah yeah o/~
+(astyanax yeah yeah yeah        <M:name> sings to you o/~ yeah yeah yeah o/~
 
 :rt,*,rthink
 
@@ -2942,7 +2976,7 @@ RT <player(s)> (thought>  - short for 'REMOTE THINK' - it's just like
 
 -=> RT is aliased to *
 
-*trap huh?          &m->n thinks . o O ( huh? )      (only trap sees it)
+*trap huh?          <M:name> thinks . o O ( huh? )      (only trap sees it)
 
 :rules
 
@@ -2996,9 +3030,9 @@ if <something> ends with a ! then it becomes an "exclaim"
 if it ends in ? then it becomes an "ask"
 if it ends in anything else, it's a "say"
 
-eg:   say hi people!            &m->n exclaims 'hi people!'
-      say where are you from?   &m->n asks 'where are you from?'
-      say that's cool.          &m->n says 'that's cool.'
+eg:   say hi people!            <M:name> exclaims 'hi people!'
+      say where are you from?   <M:name> asks 'where are you from?'
+      say that's cool.          <M:name> says 'that's cool.'
 
 Note: * SAY is also aliased to " ' `  
 
@@ -3115,6 +3149,8 @@ Show Logins -            ]  loginmsg     } Here to provide compatibility
 
 Show dynatext -          Makes all dynatext become surrounded in braces {}
 
+Show social -            ~ social to the room or you (requires "show room")
+
 :showexits
 
 SHOWEXITS   - toggles if you'll automatically see the exits to a room when
@@ -3142,7 +3178,7 @@ SING <song>  - sing something to everyone in the room
 
 -=> SING is aliased to )
 
-eg: sing do re mi            &m->n sings o/~ do re mi o/~
+eg: sing do re mi            <M:name> sings o/~ do re mi o/~
 
 :singblock
 
@@ -3221,16 +3257,16 @@ Spod (noun) (feminine:Spodess) (plural individual: Spodz) (Neuter: Spodo) -
 6. Spod Eyes syndrome - Eyes feel as if they will budge after long hours
    spent at a terminal.
 
- Spod (verb)    - To act or behave as a spod. (&m->n spods all night, doesn't
-                  &m->g?)
- Spoddy (adj)   - Fitting the behavioral patterns of a spod. (&m->n, you
+ Spod (verb)    - To act or behave as a spod. (<M:name> spods all night, doesn't
+                  <M:heshe>?)
+ Spoddy (adj)   - Fitting the behavioral patterns of a spod. (<M:name>, you
                   spoddy spoon!)
- Spodily (adv)  - Acting in the manner of a spod (&m->n spodily types away.
+ Spodily (adv)  - Acting in the manner of a spod (<M:name> spodily types away.
                   What else is new?)
  Spodaholic (n) - A spod who is obviously addicted to the spodding experience.
  Spodders       - A spod support group-Before every meeting (It's true that
  Anonymous (n)    they are meetings on talkers) One says the lines like so:
-                  "Hi, I'm &m->n, and I'm a spodaholic."
+                  "Hi, I'm <M:name>, and I'm a spodaholic."
  Spoddom (n)    - The world available for spods to spod in. The exact
                   opposite of so-called "rl" (real life)
 
@@ -3445,7 +3481,7 @@ Superuser Channel
 
 :swearing,swear,language
 
-The official language of &t is ENGLISH. In public rooms and on
+The official language of <T:name> is ENGLISH. In public rooms and on
 channels please stick to that.
 
 You must not swear under any circumstances. The code automatically
@@ -3482,7 +3518,7 @@ TELL <player(s)> <message>  - private communications. You can tell
 
 -=> tell is aliased to > and .
 
-eg:   tell alice what's goin on? =)     &m->n tells you 'what's goin on? =)'
+eg:   tell alice what's goin on? =)     <M:name> tells you 'what's goin on? =)'
 
 :tf,tinyfugue
 
@@ -3498,8 +3534,8 @@ shawn.reed@usa.net.
 THINK <thought>  - puts your thoughts into a "thought bubble" and tells it
                    to everyone in the same room as you.
 
-eg: think hmmm                    &m->n thinks . o O ( hmmm )
-    think ooooooooookay...        &m->n thinks . o O ( ooooooooookay... )
+eg: think hmmm                    <M:name> thinks . o O ( hmmm )
+    think ooooooooookay...        <M:name> thinks . o O ( ooooooooookay... )
 
 Note: * THINK is aliased to ~
 
@@ -3512,7 +3548,7 @@ TIME    - displays the local time, and some program stats.
 TIMEPROMPT <on/off>  - Turns your prompt into a clock or off again.
 
 Note: * If you don't like the format of it you can always create one using
-        dynatext (ie. "prompt [&&m->h-&&m->m-&&m->s]->".
+        dynatext (ie. "prompt [<^NM:hour>-<^NM:min>-<^NM:sec>]->".
 
 :title
 
@@ -3582,9 +3618,9 @@ use the user list to emote to more than one person in a room:
 	emote grins at you. | joe,bob
 
 Bob sees:
-	&m->n grins at you and Joe.
+	<M:name> grins at you and Joe.
 Joe sees:
-	&m->n grins at you and Bob.
+	<M:name> grins at you and Bob.
 
 Neat, eh? :)
 
@@ -3612,7 +3648,7 @@ VERSION   - shows some info about the program, modules enabled, the last
             time updated, etc.
 
 Note: * If this command is unavailable to you then the admin of
-        &t are breaking the licence agreement for this
+        <T:name> are breaking the licence agreement for this
         talker base code.
 
 :view_flags
@@ -3822,7 +3858,7 @@ Note: * A reason is required which is logged and broadcast to that channel
 :builder
 
 A builder is someone who can create items that can be bought on
-&t. Once an item has been created it can be bought by people
+<T:name>. Once an item has been created it can be bought by people
 on the talker and then played with, worn, eaten or drunk depending on
 how the builder wishes that item to be.
 
@@ -3832,7 +3868,7 @@ Once you become a builder you should read "help create"
 
 :socials,creator
 
-All socials on &t can be listed by typing "commands soc".
+All socials on <T:name> can be listed by typing "commands soc".
 To use a social type its name and press [return] and see what happens.
 Some socials ask you for a person to direct the social too, some don't and
 some may even give you the option.
@@ -3958,75 +3994,75 @@ socials!
 
 :dynatext,twinkle,twinkles
 
-&t supports dynatext, a simple yet clever system which allows
+<T:name> supports dynatext, a simple yet clever system which allows
 you to tailor your messages, descriptions etc. depending upon the person
-reading it.
+reading it. This version of dynatext is an extension to masks (see
+'help masks')
 
-It is based around the same concept of color but with the & character.
+Nearly all dynatext is made up of either:
 
-Nearly all dynatext is prefixed with either:
+  <C:something>   Refers to the current player
+  <M:something>   Refers to the player seeing the message
+  <R:something>   Refers to a random player in the room
+  <A:something>   Refers to a random player on <T:name>
+  <P:something>   Refers to the target player within item actions.
 
-  &&c->               - Refers to the current player
-  &&m->               - Refers to the player seeing the message
-  &&r->               - Refers to a random player in the room
-  &&a->               - Refers to a random player on &t
+Where something is one of:
 
-Afterwards you can append any of the additional characters:
+  name         Person's name
+  fullname     Person's name and prefix (depending on settings)
+  time         Person's full local time and date
+  stime        Person's time in HH:MM:SS format
+  hour         Current hours
+  min          Current minutes
+  sec          Current seconds
+  day          Day of the week
+  month        Month name
+  date         Date
+  rank         Rank
+  cash         Cash
+  hisher       Gender in the possessive form - his/her/its
+  heshe        Gender in the form - he/she/it
+  himher       Gender in the form - him/her/it
+  partner      Partner (engaged or married)
+  lag          The time lagged, in seconds
+  lagstr       Textual description of lag time, as shown in 'x'
 
-  n    - Person's name
-  f    - Person's full local time and date
-  h    - Current hours
-  m    - Current minutes
-  s    - Current seconds
-  w    - Day of the week
-  o    - Month name
-  d    - Date
-  r    - Rank
-  c    - Cash
-  g    - Gender in the possessive form - his/her/its
-  G    - Gender in the form - he/she/it
-  i    - Gender in the form - him/her/it
-  p    - Partner (engaged or married)
-  l    - The time lagged, in seconds
-  L    - Textual description of lag time, as shown in 'x'
+You can also use <T:something>, where something is one of:
 
-If you don't add a an arrow and a letter to the end then it will assume
-you want '->n' (the name)
+  name         The name of the talker (<T:name>)
+  addr         The address and port of the talker (<T:addr>)
+  email        The e-mail address of the admins (<T:email>)
+  pot          The current slots jackpot (<T:pot>)
+  online       The number of players online (<T:online>)
+  staff        The number of staff online (<T:staff>)
+  count        The total number of players (<T:count>)
+  countstaff   The total number of staff (<T:countstaff>)
 
-And these don't require a prefix at all:
+If you wish to ignore dynatext and masks then use the MUFFLE command. If
+you wish to see all dynatext but know that it is dynatext then you can
+use the "SHOW DYNATEXT" command.
 
-  &&t   - The name of the talker (&t)
-  &&T   - The address and port of the talker (&T)
-  &&e   - The email address of the admins (&e)
-  &&j   - The current slots jackpot (&j)
-  &&p   - The number of players online (&p)
-  &&s   - The number of staff online (&s)
-  &&P   - The total number of players (&P)
-  &&S   - The total number of staff (&S)
-
-If you wish to ignore dynatext then use the MUFFLE command. If you wish to
-see all dynatext but know that it is dynatext then you can use the "SHOW
-DYNATEXT" command.
-
-For examples please see "help dynatext-examples"
+For examples please see "help dynatext-examples".
+You may also want to see "help masks".
 
 :dynatext-examples
 
 To get the current time of the person reading it you would use:
 
-  &&m->h:&&m->m
+  <^NM:hour>:<^NM:min>
 
 To get the current time of a random person in the room you would use:
 
-  &&r->h:&&r->m
+  <^NR:hour>:<^NR:min>
 
 To run over to a random person in the same room and slap them in the face
 you would use:
 
-  emote runs over to &&r->n and slaps &&r->i in the face with &&c->g hand!
+  emote runs over to <^NR:name> and slaps <^NR:gender3> in the face with <^NC:gender> hand!
 
 Note that random names are preserved. That means that the random person
-chosen with &&r will stay the same throughout the entire command and that
+chosen with <R:..> will stay the same throughout the entire command and that
 everyone will see the _same_ random person.
 
 As you can see, dynatext mixed with socials, room messages, login messages
@@ -4221,7 +4257,7 @@ SEARCH <type> <query>  - search various parts of players in file <type>
 
 :last
 
-LAST - Lists people who recently connected to &t including
+LAST - Lists people who recently connected to <T:name> including
        when they disconnected and how long they were on for.
 
 :ichan,iu,ih,ie,is,it
@@ -4238,7 +4274,7 @@ MUFFLE ICHAN                    - Muffle the intercom channel
 Notes: * People who are on the same talker as you will be identified by
          their name only ie.
 
-           <ichan> &m->n says 'hello!'
+           <ichan> <M:name> says 'hello!'
 
        * People who aren't on the same talker as you will be identified by
          their name and talker abbreviation ie.

@@ -276,6 +276,7 @@
 #define TAG_AUTOS		(1<<6)
 #define TAG_ITEMS		(1<<7)
 #define TAG_DYNATEXT		(1<<8)
+#define TAG_SOCIAL              (1<<9)
 
 /* upper tag flags */
 
@@ -406,6 +407,7 @@
 #ifdef ALLOW_MULTIS
 #define REMOVE_COM		(1<<23)
 #endif
+#define SOCIAL			(1<<24)
 
 
 /* color modes */

@@ -41,6 +41,7 @@
 
 
    /* interns */
+char social_str[128];
 int add_social_main_list(generic_social *);
 int unlink_social(generic_social *);
 int social_room(player *, char *, int, char *);
@@ -433,7 +434,8 @@ char *expand_social(player * p, char *str, char *arg)
   strncpy(ret, single_replace(ret, "%t_fullname", full_name(targ)), siz);
 
   strncpy(ret, single_replace(ret, "%str", arg), siz);
-
+  strncpy(social_str, arg, 127);
+  social_str[127] = 0;
   stack = end_string(stack);
   return ret;
 }
@@ -468,7 +470,7 @@ int social_room(player * p, char *str, int try_room, char *msg)
       sys_flags &= ~FAILED_COMMAND;
       return 0;
     }
-    command_type |= ROOM;
+    command_type |= SOCIAL;
     send_to_room(p, that, 0, 1);
     cleanup_tag(pipe_list, pipe_matches);
     sys_flags &= ~PIPE;
@@ -477,8 +479,10 @@ int social_room(player * p, char *str, int try_room, char *msg)
   {
     sprintf(stack, "%s %s", p2->name, msg);
     stack = end_string(stack);
+    command_type |= SOCIAL;
     remote_cmd(p, oldstack, 0);
   }
+  command_type &= ~SOCIAL;
   stack = oldstack;
   return 1;
 }
@@ -667,7 +671,9 @@ void do_any_social(player * p, generic_social * soc, char *str)
       (soc->flags & stPRIVATE && !*str))
   {
     msg = expand_social(p, xpns[0], str);
+    command_type |= SOCIAL;
     TELLPLAYER(p, " %s\n", msg);
+    command_type &= ~SOCIAL;
     stack = oldstack;
     return;
   }
@@ -675,13 +681,15 @@ void do_any_social(player * p, generic_social * soc, char *str)
   if (soc->flags & stSIMPLE || (soc->flags & stCOMPLEX && !*str))
   {
     msg = expand_social(p, xpns[1], str);
-    command_type |= ROOM;
+    command_type |= SOCIAL;
     send_to_room(p, msg, 0, 1);
     stack = oldstack;
-    command_type &= ~ROOM;
+    command_type &= ~SOCIAL;
 
     msg = expand_social(p, xpns[2], str);
+    command_type |= SOCIAL;
     TELLPLAYER(p, " %s\n", msg);
+    command_type &= ~SOCIAL;
     stack = oldstack;
     p->social_index = social_index;
     return;
@@ -693,7 +701,9 @@ void do_any_social(player * p, generic_social * soc, char *str)
     {
       stack = oldstack;
       msg = expand_social(p, xpns[4], str);
+      command_type |= SOCIAL;
       TELLPLAYER(p, " %s\n", msg);
+      command_type &= ~SOCIAL;
     }
     stack = oldstack;
     p->social_index = social_index;
@@ -706,7 +716,9 @@ void do_any_social(player * p, generic_social * soc, char *str)
     {
       stack = oldstack;
       msg = expand_social(p, xpns[4], str);
+      command_type |= SOCIAL;
       TELLPLAYER(p, " %s\n", msg);
+      command_type &= ~SOCIAL;
     }
     stack = oldstack;
     p->social_index = social_index;
@@ -718,19 +730,22 @@ void do_simple_social(player * p, simple_social * soc, char *str)
   char *oldstack = stack;
   char *msg = expand_social(p, soc->outmsg, str);
 
+  command_type |= SOCIAL;
   send_to_room(p, msg, 0, 1);
-
   tell_player(p, soc->workmsg);
+  command_type &= ~SOCIAL;
 
   stack = oldstack;
 }
 
 void do_compound_social(player * p, compound_social * soc, char *str)
 {
+  command_type |= SOCIAL;
   if (!*str)
   {
     send_to_room(p, soc->nostr_outmsg, 0, 1);
     tell_player(p, soc->nostr_workmsg);
+    command_type &= ~SOCIAL;
     return;
   }
   if (social_room(p, str, 1, soc->str_outmsg))
@@ -739,6 +754,7 @@ void do_compound_social(player * p, compound_social * soc, char *str)
       TELLPLAYER(p, soc->str_workmsg, str);
     else
       tell_player(p, soc->str_workmsg);
+    command_type &= ~SOCIAL;
   }
 }
 
@@ -750,9 +766,11 @@ void do_private_social(player * p, private_social * soc, char *str)
     LOGF("error", "%s to do_private_social but no soc\n", p->name);
     return;
   }
+  command_type |= SOCIAL;
   if (!*str)
   {
     tell_player(p, soc->format);
+    command_type &= ~SOCIAL;
     return;
   }
   if (social_room(p, str, 0, soc->outmsg))
@@ -761,6 +779,7 @@ void do_private_social(player * p, private_social * soc, char *str)
       TELLPLAYER(p, soc->workmsg, str);
     else
       tell_player(p, soc->workmsg);
+    command_type &= ~SOCIAL;
   }
 }
 

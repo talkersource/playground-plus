@@ -13,13 +13,6 @@ ROOT
   will probably be something like "/home/yourid/pgplus/". If you get this
   wrong nothing horrible will happen - except your talker won't boot.
 
-Use Spires new process_output (beta)
-NEW_PROCESS_OUTPUT
-  Use the new process_output function written by Spire for Playground
-  talkers. This is generally faster, leaner and prettier than the original
-  code but has the disadvantage of not being tested as much. All bug
-  reports for this code should be mailed to <pre@pre.org>.
-
 Include intercom server support
 INTERCOM
   Includes Grims intercom code which allows you to talker to other people

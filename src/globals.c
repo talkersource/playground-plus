@@ -81,6 +81,9 @@ int awaiting_reboot = 0;	/* are we waiting to reboot */
 int pot;
 int social_index;
 
+int max_ppl_on_so_far_time = 0, max_ppl_ever_so_far = 0;
+int max_ppl_ever_so_far_time = 0, newbie_count = 0;
+
 player **pipe_list;
 int pipe_matches;
 
@@ -121,6 +124,7 @@ const char *reserved_names[] =
    "staff",
    "finger",
    "who",
+   "stats_info",
    ""
 };
 
@@ -128,15 +132,20 @@ const char *reserved_names[] =
    (ie. sites containing talker listings which periodically connect to the
    talker) 
 
-   NOTE: IP address equivilants are NOT necessary here but have been
-included
-         just in case a nameserver lookup fails
+   NOTE: IP address equivilants are NOT necessary here but if you're
+         getting spammed because they're not looking up quick enough
+         (or they just are IP addresses) then add them too
 
 */
 
+/* As of 21/03/2001 these sites were doing the legitimate spamming
+   of the noncon log and are hence hidden ... */
+
 const char *unlogged_sites[] =
 {
-   "ewtoo.org", "195.153.247.85",
+   "ewtoo.org", "www.ewtoo.org",
+   "www.leodas.com", "209.180.18.170",
+   "213.48.105.130", "213.48.105.133",
    ""
 };
 

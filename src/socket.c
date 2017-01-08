@@ -37,6 +37,7 @@
 #include "include/player.h"
 #include "include/fix.h"
 #include "include/proto.h"
+#include "include/output.h"
 
 #ifdef IDENT
 #include "include/ident.h"
@@ -79,8 +80,6 @@ extern char *sprintf(char *, char *,...);
 
 int main_descriptor, alive_descriptor, oi_test;
 file banish_file, banish_msg, full_msg, splat_msg, under18_msg;
-char *convert_dynatext(player *, char *);
-
 
 /* terminal defintitions
    NOTE: The incorrect vt100 and ansi definitions have been corrected
@@ -282,8 +281,12 @@ char *getcolor(player * p, char col)
 }
 void clear_screen(player * p, char *str)
 {
+
   if (p->term)
-    tell_player(p, terms[(p->term) - 1].cls);
+  {
+  if (!write_socket(&p->fd, terms[(p->term) - 1].cls,strlen(terms[(p->term) - 1].cls)))
+    quit(p, 0);
+  }
   else
     tell_player(p, " You have to have a termtype set for this command to"
 		" work. Use the command: hitells <termtype>\n");
@@ -592,8 +595,10 @@ void accept_new_connection(void)
     return;
   }
   if (new_socket < 0)
-    handle_error("Error accepting new connection.");
-
+  {
+    log("error", "Error accepting new connection.");
+    return;
+  }
 
   if (ioctl(new_socket, FIONBIO, &dummy) < 0)
     handle_error("Can't set non-blocking");
@@ -733,7 +738,7 @@ void telnet_options(player * p)
 	case TELOPT_EOR:
 	  p->flags |= EOR_ON;
 	  p->flags &= ~IAC_GA_DO;
-	  tell_player(p, "\377\031");
+	  tell_player(p, (char [4]) {IAC, WILL, TELOPT_EOR, '\0'});
 	  break;
       }
       break;
@@ -855,8 +860,10 @@ void get_player_input(player * p)
 	      out_pack_current++;
 	    }
 	  }
-	  else
-	  {
+          else if (!(p->ibuff_pointer < (IBUFFER_LENGTH - 3)))
+          {
+            spam_warning(p);
+            return;
 	  }
 	  break;
       }
@@ -869,6 +876,7 @@ void scan_sockets()
 {
   fd_set fset;
   player *scan;
+  struct timeval tv;
 
   FD_ZERO(&fset);
 
@@ -897,7 +905,10 @@ void scan_sockets()
     intercom_fd = establish_intercom_server();
 #endif
 
-  if (select(FD_SETSIZE, &fset, 0, 0, 0) == -1)
+  tv.tv_sec = 0;
+  tv.tv_usec = 0;
+
+  if (select(FD_SETSIZE, &fset, 0, 0, &tv) == -1)
     return;
 
   if (FD_ISSET(main_descriptor, &fset))
@@ -921,596 +932,6 @@ void scan_sockets()
 
 }
 
-
-/*
- * turns a string said to a player into something ready to go down the telnet
- * connection
- */
-
-#ifndef NEW_PROCESS_OUTPUT
-file process_output(player * p, char *str)
-{
-  int sub = 0, i, hi = 0, col = 0;
-  char *save, color_char;
-  file o;
-
-  o.where = stack;
-  o.length = 0;
-
-
-  if (p != current_player)
-  {
-    if ((command_type & PERSONAL || p->flags & TAGGED) && p->term &&
-	!((sys_flags & EVERYONE_TAG) || (sys_flags & ROOM_TAG))
-	&& !(p->misc_flags & SYSTEM_COLOR))
-    {
-      strcpy(stack, terms[(p->term) - 1].bold);
-      while (*stack)
-      {
-	stack++;
-	o.length++;
-	sub++;
-      }
-      hi = 1;
-    }
-    else if (p->misc_flags & SYSTEM_COLOR)
-    {
-      color_char = p->colorset[sys_color_atm];
-      strcpy(stack, getcolor(p, color_char));
-      while (*stack)
-      {
-	stack++;
-	o.length++;
-	sub++;
-      }
-      col = 1;
-    }
-    save = stack;
-    if (command_type & LOGIN_TAG)
-    {
-      if (p->tag_flags & TAG_LOGINS)
-      {
-	*stack++ = ']';
-	o.length++;
-      }
-      *stack++ = ' ';
-      o.length++;
-    }
-    if (command_type & LOGOUT_TAG)
-    {
-      if (p->tag_flags & TAG_LOGINS)
-      {
-	*stack++ = '[';
-	o.length++;
-      }
-      *stack++ = ' ';
-      o.length++;
-    }
-    if (command_type & RECON_TAG)
-    {
-      if (p->tag_flags & TAG_LOGINS)
-      {
-	*stack++ = '%';
-	o.length++;
-      }
-      *stack++ = ' ';
-      o.length++;
-    }
-    if (command_type & ECHO_COM && p->tag_flags & TAG_ECHO)
-    {
-      *stack++ = '+';
-      o.length++;
-    }
-#ifdef ALLOW_MULTIS
-    if (!(command_type & MULTI_COM))
-    {
-#endif
-      if ((command_type & PERSONAL ||
-	   p->flags & TAGGED) && p->tag_flags & TAG_PERSONAL &&
-	  !((sys_flags & EVERYONE_TAG) || (sys_flags & ROOM_TAG)))
-      {
-	if (sys_flags & FRIEND_TAG)
-	{
-	  *stack++ = '*';
-	}
-	else if (sys_flags & OFRIEND_TAG)
-	{
-	  *stack++ = '=';
-	}
-	else if (sys_flags & REPLY_TAG)
-	{
-	  *stack++ = '&';
-	}
-	else
-	{
-	  *stack++ = '>';
-	}
-	o.length++;
-      }
-#ifdef ALLOW_MULTIS
-    }
-#endif
-    if (sys_flags & ITEM_TAG)
-    {
-      if (p->tag_flags & TAG_ITEMS)
-      {
-	*stack++ = '^';
-	o.length++;
-      }
-      else if (p->tag_flags & TAG_ROOM)
-      {
-	*stack++ = '-';
-	o.length++;
-      }
-      else
-      {
-	*stack++ = ' ';
-	o.length++;
-      }
-    }
-    if ((command_type & EVERYONE || sys_flags & EVERYONE_TAG) &&
-	p->tag_flags & TAG_SHOUT)
-    {
-      *stack++ = '!';
-      o.length++;
-    }
-    if ((command_type & ROOM || sys_flags & ROOM_TAG) &&
-	p->tag_flags & TAG_ROOM &&
-	!(command_type & (RECON_TAG | LOGIN_TAG | LOGOUT_TAG | ECHO_COM)))
-    {
-      *stack++ = '-';
-      o.length++;
-    }
-    if (command_type & AUTO && p->tag_flags & TAG_AUTOS)
-    {
-      *stack++ = '#';
-      o.length++;
-    }
-    if (stack != save && !(command_type & (RECON_TAG | LOGIN_TAG | LOGOUT_TAG)))
-    {
-      *stack++ = ' ';
-      o.length++;
-    }
-    if (command_type & ECHO_COM && p->tag_flags & SEEECHO &&
-	(command_type & PERSONAL || (p->location)))
-    {
-      sprintf(stack, "[%s] ", current_player->name);
-      while (*stack)
-      {
-	stack++;
-	o.length++;
-      }
-    }
-  }
-  if ((!hi) && (command_type & HIGHLIGHT) && (p->term) && !(p->misc_flags & SYSTEM_COLOR))
-  {
-    strcpy(stack, terms[(p->term) - 1].bold);
-    while (*stack)
-    {
-      stack++;
-      o.length++;
-      sub++;
-    }
-    hi = 1;
-  }
-  else if ((!col) && p->misc_flags & SYSTEM_COLOR)
-  {
-    color_char = p->colorset[sys_color_atm];
-    strcpy(stack, getcolor(p, color_char));
-    while (*stack)
-    {
-      stack++;
-      o.length++;
-      sub++;
-    }
-    col = 1;
-  }
-  p->column += o.length;
-
-  p->column -= sub;
-  sub = 0;
-  while (*str)
-  {
-    switch (*str)
-    {
-      case '^':
-	if (p->misc_flags & NOCOLOR)
-	{
-	  if (p->term_width && (p->column >= p->term_width))
-	  {
-	    for (i = 0; i < p->word_wrap; i++, stack--, o.length--)
-	      if (isspace(*(--str)))
-		break;
-	    if (i != p->word_wrap)
-	    {
-	      *stack++ = '\r';
-	      *stack++ = '\n';
-	      *stack++ = ' ';
-	      *stack++ = ' ';
-	      *stack++ = ' ';
-	      p->column = 3;
-	      str++;
-	      o.length += 5;
-	    }
-	    else
-	    {
-	      for (; i; stack++, str++, o.length++)
-		i--;
-	      *stack++ = '\r';
-	      *stack++ = '\n';
-	      *stack++ = ' ';
-	      *stack++ = ' ';
-	      *stack++ = ' ';
-	      p->column = 3;
-	      o.length += 5;
-	    }
-	  }
-	  if (*(str + 1) == '^')
-	  {
-	    *stack++ = *str++;
-	    o.length++;
-	  }
-	  else
-	    str++;
-	  str++;
-	  p->column++;
-	  break;
-	}
-	else
-	  switch (*(str + 1))
-	  {
-	    case '^':
-	      if (p->term_width && (p->column >= p->term_width))
-	      {
-		for (i = 0; i < p->word_wrap; i++, stack--, o.length--)
-		  if (isspace(*(--str)))
-		    break;
-		if (i != p->word_wrap)
-		{
-		  *stack++ = '\r';
-		  *stack++ = '\n';
-		  *stack++ = ' ';
-		  *stack++ = ' ';
-		  *stack++ = ' ';
-		  p->column = 3;
-		  str++;
-		  o.length += 5;
-		}
-		else
-		{
-		  for (; i; stack++, str++, o.length++)
-		    i--;
-		  *stack++ = '\r';
-		  *stack++ = '\n';
-		  *stack++ = ' ';
-		  *stack++ = ' ';
-		  *stack++ = ' ';
-		  p->column = 3;
-		  o.length += 5;
-		}
-	      }
-	      str++;
-	      *stack++ = *str++;
-	      o.length++;
-	      /* p->column++; */
-	      break;
-	    default:
-	      color_char = *(str + 1);
-	      if (!(getcolor(p, color_char)))
-	      {
-		str++;
-		str++;
-		break;
-	      }
-	      strcpy(stack, getcolor(p, color_char));
-	      col = 1;
-	      while (*stack)
-	      {
-		stack++;
-		o.length++;
-	      }
-	      str++;
-	      str++;
-	      break;
-	  }
-	break;
-      case '\n':
-	if (hi && p->term)
-	{
-	  strcpy(stack, terms[(p->term) - 1].off);
-	  while (*stack)
-	  {
-	    stack++;
-	    o.length++;
-	  }
-	  hi = 0;
-	}
-	if (col && p->term)
-	{
-	  /* clear color codes */
-	  strcpy(stack, getcolor(p, '^'));
-	  while (*stack)
-	  {
-	    stack++;
-	    o.length++;
-	  }
-	  col = 0;
-	}
-	*stack++ = '\r';
-	*stack++ = '\n';
-	p->column = 0;
-	str++;
-	o.length += 2;
-	break;
-      default:
-	if (p->term_width && (p->column >= p->term_width))
-	{
-	  for (i = 0; i < p->word_wrap; i++, stack--, o.length--)
-	    if (isspace(*(--str)))
-	      break;
-	  if (i != p->word_wrap)
-	  {
-	    *stack++ = '\r';
-	    *stack++ = '\n';
-	    *stack++ = ' ';
-	    *stack++ = ' ';
-	    *stack++ = ' ';
-	    p->column = 3;
-	    str++;
-	    o.length += 5;
-	  }
-	  else
-	  {
-	    for (; i; stack++, str++, o.length++)
-	      i--;
-	    *stack++ = '\r';
-	    *stack++ = '\n';
-	    *stack++ = ' ';
-	    *stack++ = ' ';
-	    *stack++ = ' ';
-	    p->column = 3;
-	    o.length += 5;
-	  }
-	}
-	*stack++ = *str++;
-	o.length++;
-	p->column++;
-	break;
-    }
-  }
-  return o;
-}
-#else /* NEW_PROCESS_OUTPUT by Spire */
-/* Yet another process_output (yapo?), this time hopefully a little more
- * successful than the first one.
- * Intended to be a bit quicker than the PG96 original, but if there are
- * any problems, send a bug report to me as well as anyone else who seems
- * appropriate (Silver, if you're running PG+).
- * It won't wrap a long string as ^^^^^^^^^, because it just wasn't
- * (imho) worth the huge extra chunk for something that doesn't need
- * wrapping anyway - who cares if that many carets vanish off the edge
- * of their screen? ;)
- * --
- * Patrick E, pre@pre.org */
-
-file process_output(player * p, char *str)
-{
-  int sub = 0, i, bold = 0, col = 0;
-  char *mark;
-  file o;
-
-  /* Not setting o.length, because I use a nasty bit of pointer
-   * arithmetic later (so sue me). */
-  o.where = stack;
-
-  /* This is a fix for things like the warn command, where what
-   * used to happen was something like...
-   *    >
-   *    -=> Spire warns you 'Cut that out!'
-   *
-   * and it just looked messy.
-   * Instead, it just scoots past all leading newlines. */
-  while (*str == '\n')
-  {
-    *stack++ = *str++;
-    *stack++ = '\r';
-    sub += 2;
-  }
-
-  /* Deal with show tags before colours and highlighting. Not only
-   * does it eliminate yet another chunk of code, but it looks nicer. */
-  if (p != current_player)
-  {
-    if (command_type & LOGIN_TAG && p->tag_flags & TAG_LOGINS)
-      *stack++ = ']';
-    else if (command_type & LOGOUT_TAG && p->tag_flags & TAG_LOGINS)
-      *stack++ = '[';
-    else if (command_type & RECON_TAG && p->tag_flags & TAG_LOGINS)
-      *stack++ = '%';
-    else if (command_type & ECHO_COM && p->tag_flags & TAG_ECHO)
-      *stack++ = '+';
-
-    mark = stack;
-
-#ifdef ALLOW_MULTIS
-    if (!(command_type & MULTI_COM))
-    {
-#endif
-      if ((command_type & PERSONAL || p->flags & TAGGED) &&
-	  !(sys_flags & EVERYONE_TAG || sys_flags & ROOM_TAG) &&
-	  p->tag_flags & TAG_PERSONAL)
-      {
-	if (sys_flags & FRIEND_TAG)
-	  *stack++ = '*';
-	else if (sys_flags & OFRIEND_TAG)
-	  *stack++ = '=';
-	else if (sys_flags & REPLY_TAG)
-	  *stack++ = '&';
-	else
-	  *stack++ = '>';
-      }
-#ifdef ALLOW_MULTIS
-    }
-#endif
-    if (sys_flags & ITEM_TAG)
-    {
-      if (p->tag_flags & TAG_ITEMS)
-	*stack++ = '^';
-      else if (p->tag_flags & TAG_ROOM)
-	*stack++ = '-';
-    }
-
-    if ((command_type & EVERYONE || sys_flags & EVERYONE_TAG) &&
-	p->tag_flags & TAG_SHOUT)
-      *stack++ = '!';
-    else if ((command_type & ROOM || sys_flags & ROOM_TAG) &&
-	     p->tag_flags & TAG_ROOM)
-      *stack++ = '-';
-    else if (command_type & AUTO && p->tag_flags & TAG_AUTOS)
-      *stack++ = '#';
-
-    /* I've kludged this to use a strcpy and chars. Don't
-     * know if this is much better than a sprintf, but it
-     * works for me. */
-    if (command_type & ECHO_COM && p->tag_flags & SEEECHO &&
-	(command_type & PERSONAL || p->location))
-    {
-      *stack++ = '[';
-      strcpy(stack, current_player->name);
-      while (*stack)
-	stack++;
-      *stack++ = ']';
-    }
-    if (stack != mark)
-      *stack++ = ' ';
-  }
-
-  /* It's spelled COLOUR, for fuck's sake! */
-  if (p->term && !(p->misc_flags & SYSTEM_COLOR) &&
-      ((command_type & PERSONAL || p->flags & TAGGED) &&
-       (!(sys_flags & EVERYONE_TAG || sys_flags & ROOM_TAG) ||
-	command_type & HIGHLIGHT)))
-  {
-    strcpy(stack, terms[(p->term - 1)].bold);
-    bold = 1;
-  }
-  else if ((p->misc_flags & SYSTEM_COLOR) && (p->colorset[sys_color_atm] != 'N'))
-  {
-    strcpy(stack, getcolor(p, p->colorset[sys_color_atm]));
-    col = 1;
-  }
-  if (bold || col)
-    while (*stack)
-    {
-      stack++;
-      sub++;
-    }
-
-  /* Yes, I know pointer arithmetic is frowned on, but it's a
-   * quick option here, and cuts out a big chunk of code. */
-  p->column = (((int) stack - (int) o.where) * sizeof(char)) - sub;
-
-  sub = 0;
-
-  /* Seeeeee the cases stretch across the screen. Linus loves me! */
-  while (*str)
-  {
-    switch (*str)
-    {
-      case '^':
-	switch (*(str + 1))
-	{
-	  case '\0':
-	    str++;
-	    break;
-	  case '^':
-	    *stack++ = '^';
-	    p->column++;
-	    str += 2;
-	    break;
-	  default:
-	    /* I hope your editor scrolls 
-	     */
-	    if (!(p->misc_flags & NOCOLOR))
-	    {
-	      mark = getcolor(p, *(str + 1));
-	      if (mark)
-	      {
-		strcpy(stack, mark);
-		while (*stack)
-		  stack++;
-	      }
-	    }
-	    str += 2;
-	}
-	break;
-      case '\n':
-	/* Check to see if we're at the end of the
-	 * text - if we are, terminate the highlight.
-	 *
-	 * Allows us to highlight several lines at 
-	 * a time.
-	 */
-	if (!*(str + 1))
-        {
-	  if (col)
-	  {
-	    strcpy(stack, getcolor(p, '^'));
-	    for (col = 0; *stack; stack++);
-	  }
-	  else if (bold)
-	  {
-	    strcpy(stack, terms[(p->term - 1)].off);
-	    for (bold = 0; *stack; stack++);
-	  }
-        }
-	*stack++ = '\n';
-	*stack++ = '\r';
-	p->column = 0;
-	str++;
-	break;
-      default:
-	if (p->term_width && p->column >= p->term_width)
-	{
-	  for (i = 0; *stack != ' ' && i < p->word_wrap; stack--, str--, i++);
-	  if (*str == ' ')
-	    while (*str == ' ')
-	      str++;
-	  else
-	    for (; i; stack++, str++, i--);
-	  *stack++ = '\n';
-	  *stack++ = '\r';
-	  *stack++ = ' ';
-	  *stack++ = ' ';
-	  *stack++ = ' ';
-	  p->column = 3;
-	}
-	*stack++ = *str++;
-	p->column++;
-    }
-  }
-
-  if (col)
-  {
-    strcpy(stack, getcolor(p, '^'));
-    while (*stack)
-      stack++;
-  }
-  else if (bold)
-  {
-    strcpy(stack, terms[(p->term - 1)].off);
-    while (*stack)
-      stack++;
-  }
-  /* This is bad (pointer arithmetic, ick) but quicker than
-   * incrementing the length for every bloody character (I think, but 
-   * am prepared to be corrected). */
-  o.length = ((int) stack - (int) o.where) * sizeof(char);
-
-  return o;
-}
-#endif
-
 /* generic routine to write to one player */
 
 void tell_player(player * p, char *str)
@@ -1529,9 +950,7 @@ void tell_player(player * p, char *str)
     if (!test_receive(p))
       return;
   }
-  /* blimey's incorporation of dynatext ... */
-  /* Hey! Don't forget I actually wrote this code !! -- Silver */
-  str = convert_dynatext(p, str);
+  str = masks_process(p, str);
   output = process_output(p, str);
 
   if (p->script)
@@ -1581,7 +1000,7 @@ void non_block_tell(player * p, char *str)
   if (((p->fd) < 0) || (p->flags & PANIC))
     return;
 
-  str = convert_dynatext(p, str);
+  str = masks_process(p, str);
   output = process_output(p, str);
 
   if (p->script)

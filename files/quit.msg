@@ -1,9 +1,9 @@
 
 ---------------------------------------------------------------------------
 
-  Thank you for visiting &t - Please come again &m->n!
+  Thank you for visiting <T:name> - Please come again <M:name>!
 
-  All comments and questions should be directed to &e
+  All comments and questions should be directed to <T:email>
 
 ---------------------------------------------------------------------------
 

@@ -800,6 +800,7 @@ void input_for_one(player * p)
 {
   char *pick;
 
+  masks_reset();
   this_rand = (player *) NULL;	/* dynatext random player reset */
   if (p->input_to_fn)
   {
@@ -888,9 +889,32 @@ void process_players()
 {
   player *scan, *sparky;
   char *oldstack, *hasta, thetime[10];
+  FILE *fp;
 
   if (current_players > max_ppl_on_so_far)
+  {
     max_ppl_on_so_far = current_players;
+    max_ppl_on_so_far_time = time(0);
+    if (max_ppl_on_so_far > max_ppl_ever_so_far)
+    {
+      oldstack = stack;
+      max_ppl_ever_so_far = max_ppl_on_so_far;
+      max_ppl_ever_so_far_time = max_ppl_on_so_far_time;
+      ADDSTACK("max_ppl: %d\nmax_ppl_time: %d",
+               max_ppl_ever_so_far, (int) max_ppl_ever_so_far_time);
+      ENDSTACK("\n");
+      fp = fopen("files/stats_info", "w");
+      if (!fp)
+        LOGF("error", "Couldn't open stats_info file in process_players");
+      else
+      {
+        fprintf(fp, oldstack);
+        fclose(fp);
+      }
+      stack = oldstack;
+    }
+  }
+
   for (scan = flatlist_start; scan; scan = sparky)
   {
     sparky = scan->flat_next;

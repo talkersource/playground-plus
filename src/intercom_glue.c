@@ -19,9 +19,8 @@
 #include <sys/time.h>
 #ifndef BSDISH
 #include <malloc.h>
-#else
-#include <stdlib.h>
 #endif
+#include <stdlib.h>
 #include <ctype.h>
 
 #include "include/player.h"

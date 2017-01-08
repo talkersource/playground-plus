@@ -8,7 +8,6 @@
 /*
  * Additional code options
  */
-#define NEW_PROCESS_OUTPUT 1
 #define INTERCOM 1
 #undef  ANTICRASH
 #define AUTOSHUTDOWN 1

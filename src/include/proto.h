@@ -84,6 +84,7 @@ extern file load_file_verbose(char *, int);
 extern int check_duty ( player * );
 extern int check_password(char *, char *, player *);
 extern int check_privs(int, int);
+extern int contains_dynatext(player *, char *);
 extern int count_caps(char *);
 extern int count_unread_news(time_t);
 extern int count_unread_snews(time_t);
@@ -280,8 +281,10 @@ extern void set_yes_session(player *, char *);
 void setup_itimer(void);
 extern void show_logs(player *, char *);
 extern void sing_shout (player *, char *);
+extern void show_stats_info(player *);
 extern void snews_command(player *, char *);
 extern void soft_eject(player *, char *);
+extern void spam_warning(player *);
 extern void spodlist(void);
 extern void start_edit(player *, int, player_func *, player_func *, char *, int); /* EWE added int */
 extern void su_wall(char *);
@@ -510,6 +513,10 @@ extern void         reboot_load_multis (void);
 
 #endif /* ALLOW_MULTIS */
 
+extern void         masks_init (void);
+extern void         masks_reset (void);
+extern char         *masks_process (player *, char *);
+
 /* EWE */
 /* addition of code segment from sensi to support EWe:- numeric_s */
 extern char	    *numeric_s(int);
@@ -540,6 +547,8 @@ extern int      backup_hour, backup_time, longest_time, pot, reboot_date,
                 session_reset, shutdown_count, social_index;
 extern int      update[];
 
+extern int      max_ppl_on_so_far_time, max_ppl_ever_so_far; 
+extern int  max_ppl_ever_so_far_time, newbie_count;
 
 extern player  *flatlist_start, *hashlist[], *current_player, *p_sess,
                *stdout_player, *input_player, *otherfriend, *this_rand;

@@ -161,7 +161,7 @@ extern command_func     list_news_groups, toggle_news_login, news_help,
 /* krad soshuls */
 extern command_func     examine_social, start_new_social, set_social_attribute,
                 sync_socials_command, load_socials_command, delete_social,
-                list_creators;
+                list_creators, edit_social;
 
 /* extra ewe editor commands */
 extern command_func	edit_toggle_insert, edit_set_padding, edit_toggle_paragraph,
@@ -690,6 +690,7 @@ struct command  complete_list[] = {	/* non alphabetic */
 {"eat", eat_item, BASE, 0, 1, 0, ITEMc},
 {"echo", echo, ECHO_PRIV, 0, 1, 0, COMMc|M_SWEARc|SPAMc},
 {"edit_file", edit_file, ADMIN, 0, 1, 0, ADMINc},
+{"edit_social", edit_social, SPECIALK, 0, 1, 0, SOCIALc},
 {"edcash", edcash, ADMIN, 0, 1, 0, ADMINc},
 {"edfirst", edfirst, ADMIN, 0, 1, 0, ADMINc},
 {"edidle", edidle, ADMIN, 0, 1, 0, ADMINc},

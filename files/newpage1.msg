@@ -1,7 +1,7 @@
 
 --------------------------------- Welcome --------------------------------
 
-   &t is here for one and all as a place to relax and chat.
+   <T:name> is here for one and all as a place to relax and chat.
 The aim of the program is simply to provide a nice, secure environment
  in which you can talk. Nice, because it has a multitude of features
 to make life easier, and secure because we guarentee that anything you

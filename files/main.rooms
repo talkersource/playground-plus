@@ -19,11 +19,11 @@ The playground is awash with children. Running, screaming, shouting,
 playing, fighting, kicking and singing with each other. The sound is
 deafening and yet you seem to be mesmorised by the whole scene.
 
-A huge clock on the building announces to the children that its &m->h:&m->m
+A huge clock on the building announces to the children that its <M:hour>:<M:min>
 although they seem hellbent on making the most of the precious time there
 is left.
 
-There is a shout of "Oy! &m->n!" from within the crowd. Looks like you're
+There is a shout of "Oy! <M:name>" from within the crowd. Looks like you're
 wanted to play ...
 
 #

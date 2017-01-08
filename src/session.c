@@ -76,13 +76,11 @@ void set_session(player * p, char *str)
     tell_player(p, " Sorry, but you can't have colours in a session title.\n");
     return;
   }
-  if (strstr(str, "&"))
+  if (contains_dynatext(p, str))
   {
     tell_player(p, " Sorry, but you can't have dynatext in a session title.\n");
     return;
   }
-
-
 
   sprintf(session, "%s", str);
   sprintf(stack, " You reset the session message to be '%s^N'\n", str);
@@ -195,7 +193,7 @@ void set_comment(player * p, char *str)
     tell_player(p, " Sorry, but you can't have colour in your session comment.\n");
     return;
   }
-  if (strstr(str, "&"))
+  if (contains_dynatext(p, str))
   {
     tell_player(p, " Sorry, but you can't have dynatext in your session comment.\n");
     return;

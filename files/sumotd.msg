@@ -6,6 +6,6 @@
   pleasant to use. If not then hopefully you'll love it!!
 
   If you can't help the residents with any of their questions then please
-  get them to send an email to &e.
+  get them to send an email to <T:email>.
 
 ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ go_on_duty:	Hey pal, get back on_duty first ...
 
 # These arent relaly impletemented, but should be...;)
 nojoy:		No such player in saved files ...
-noton:		That person isn't on &t at the moment ...
+noton:		That person isn't on <T:name> at the moment ...
 
 # this needs exactly one %s where the plaeyrs name is substituted
 sneezed:	-=*> %s is sneezed upon ... ewwwwwwww !
@@ -26,13 +26,13 @@ rm_sing:	-=*> You notice how out of tune you are and get highly embarrassed.
 un_rm_sing:	-=*> Someone pays for your singing lessions ...
 
 assist_msg:
-	-=*> &c->n is a superuser, and would be
+	-=*> <C:name> is a superuser, and would be
 	     happy to assist you in any problems you may have, including
 	     gaining residency, so that you can have your own rooms, and
 	     have your character saved between visits (type 'help residency' 
 	     for more information about that.)
 	
-	     To talk to &c->i, type 'tell &c->n <whatever>',
+	     To talk to <C:himher>, type 'tell <C:name> <whatever>',
 	     short forms of names usually work as well.
 	
 	

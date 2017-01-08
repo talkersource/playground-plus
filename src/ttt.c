@@ -12,6 +12,7 @@
 /* headers */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "include/config.h"
 #include "include/player.h"

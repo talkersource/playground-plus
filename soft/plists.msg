@@ -48,7 +48,7 @@ sneeze_login:
 
 # If talker is gonna reboot in less than 3 mins, show them this message
 talker_rebooting:	
-	We are sorry, but &t is currently rebooting for system maintenance.
+	We are sorry, but <T:name> is currently rebooting for system maintenance.
 	We will return in less than 3 minutes, so please try again then.
 	
 
@@ -57,7 +57,7 @@ talker_rebooting:
 # (requires exactly one %s, where the name is substitued)
 name_confirm:	
 	You entered the name '%s' when you first logged in.
-	Is this the name that you wish to be known as on &t
+	Is this the name that you wish to be known as on <T:name>
 	
 
 # Seen if they want to change there name
@@ -70,12 +70,12 @@ hit_return:	Hit <RETURN> to continue:
 
 # New reconnect string ...
 new_reconnect:	
-	Restoring your connection to &t ...
+	Restoring your connection to <T:name> ...
 	
 
 # Old reconnect string ...
 old_reconnect:	
-	You were already logged onto &t !!
+	You were already logged onto <T:name> !!
 	Closing other connection.
 	
 

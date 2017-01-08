@@ -268,6 +268,24 @@ MessageFileArray[] =
 #include "anti-crash.c"
 #endif
 
+void stats_loader(void)
+{
+  file gf;
+  gf = load_file_verbose("files/stats_info", 0);
+  if (!gf.where)
+  {
+    LOGF("error", "problem in stats_loader");
+    return;
+  }
+  if (*(gf.where))
+  {
+    max_ppl_ever_so_far = atoi(lineval(gf.where, "max_ppl"));
+    max_ppl_ever_so_far_time = atoi(lineval(gf.where, "max_ppl_time"));
+  }
+  FREE(gf.where);
+}
+
+
 
 /* print up birthday */
 
@@ -394,9 +412,9 @@ char *get_address(player * p, player * q)
 #else
 
 #ifdef ROBOTS
-  if (!can_get_addy || !strcasecmp(p->remote_user, "<CONN REFUSED>") || p->residency & ROBOT_PRIV)
+  if (!can_get_addy || (!strcasecmp(p->remote_user, "<") && !strcasecmp(p->remote_user, ">")) || p->residency & ROBOT_PRIV)
 #else
-  if (!can_get_addy || !strcasecmp(p->remote_user, "<CONN REFUSED>"))
+  if (!can_get_addy || (!strcasecmp(p->remote_user, "<") && !strcasecmp(p->remote_user, ">")))
 #endif
   {
     sprintf(retstr, "%s", p->inet_addr);
@@ -1323,7 +1341,7 @@ void close_down(void)
   {
     raw_wall(shutdown_reason);
   }
-  raw_wall("\n\n\n      ---====>>>> &t shutting down NOW <<<<====---"
+  raw_wall("\n\n\n      ---====>>>> <T:name> shutting down NOW <<<<====---"
 	   "\n\n\n");
   command_type &= ~HIGHLIGHT;
 
@@ -1465,6 +1483,7 @@ void boot(int port)
   init_socials();		/* kRad socials */
   /* EWE */
   ewe_init_editor();		/* EWe editor */
+  masks_init();                 /* Initialise masks */
   init_global_histories();	/* history logging */
 #ifdef ROBOTS
   init_robots();		/* robots code */
@@ -1473,6 +1492,7 @@ void boot(int port)
   init_ident_server();		/* ident server */
 #endif
   get_hardware_info();		/* for netstat */
+  stats_loader();               /* load pre-saved stats */
 
 #ifndef PC
   if (!(sys_flags & SHUTDOWN))
@@ -2054,3 +2074,21 @@ void setup_itimer(void)
   if (setitimer(ITIMER_REAL, &new, &old) < 0)
     handle_error("Can't set timer.");
 }
+
+/* check if a string *really* has dynatext in it 
+   for sessions and stuff.
+
+   Note: need to store and restore the stack state in this funtion
+   since masks_process does stuff with it */
+
+int contains_dynatext(player *p, char *str)
+{
+  int ret = 0;
+  char *oldstack = stack;
+    
+  if (strcmp(masks_process(p, str), str))
+    ret = 1;
+
+  stack = oldstack;
+  return ret;
+} 

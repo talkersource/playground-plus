@@ -1123,6 +1123,9 @@ void	insert_line(player *p, char *input)
   if(first_added) 
     edit_copy_subsection_to_stack(p, first_added->number, p->edit_info->current_line->number, 1, 0);
   
+  /* fix developed while testing on resort */
+  *stack = 0;
+
   /* eep.  too many lines now? */
   if(!first_added) /* we managed to get something on */
     sprintf(stack, "EWe: Sorry, editor buffer is now full (%d lines).\n", MAX_EDITOR_LINES);

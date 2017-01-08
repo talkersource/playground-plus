@@ -144,7 +144,8 @@ void process_review(player * p, char *message, int length)
   {				/* count from 0 to 5 */
     if (strlen(p->rev[i].review) < 1)
     {				/* if the element is empty */
-      strncpy(p->rev[i].review, message, length);	/* store the data */
+      memset(p->rev[i].review, 0, MAX_REVIEW);
+      strncpy(p->rev[i].review, message, MAX_REVIEW - 3);
       return;
     }
   }
@@ -1080,12 +1081,13 @@ void remote_cmd(player * p, char *str, int manual)
   char *msg, *pstring, *final;
   char *oldstack;
   player **list, **step;
-  int i, n;
+  int i, n, s;
   char tname[MAX_NAME + MAX_PRETITLE + 3];
 #ifdef INTERCOM
   char *intercom_pointer;
 #endif
 
+  s = (command_type & SOCIAL);
   command_type = PERSONAL | SEE_ERROR;
 
   if (p->tag_flags & BLOCK_TELLS)
@@ -1169,6 +1171,8 @@ void remote_cmd(player * p, char *str, int manual)
   if (n > 1)
     if (!(sys_flags & ROOM_TAG))
     {
+      if (s)
+        command_type |= SOCIAL;
       multi_remote(p, str, msg);
       stack = oldstack;
       return;

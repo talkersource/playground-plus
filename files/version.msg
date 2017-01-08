@@ -1,6 +1,6 @@
 ------------------------------- New Code ----------------------------------
 
-Welcome to Playground+ version 1.0.10
+Welcome to Playground+ version 1.0.11
 
 Below is a list of additional things that have been added, bug fixed or
 changed since Playground v5.0.0 in no particular order:
@@ -320,7 +320,31 @@ changed since Playground v5.0.0 in no particular order:
 - talker can still be booted with corrupt system rooms
 - if you change the port number on the fly the intercom will announce the
   port change to other connected talkers to avoid database spam
+ -- 1.0.11 --
+- fixed compilation errors with some files
+- enabled missing "edit_social" command
+- fixed debug channel muffling when priv is removed
+- bizzare printing and stack errors with EWe fixed
+- "inform friends" fixed to not inform you of everyones movements
+- talk server idling bug fixed
+- ip masks for Deathboy and Silver removed
+- multis code updated to 1.35.1 to fix hanging and crashing exploits
+- fixed shutdown bug with nmap on Linux 2.4 kernel
+- fixed buffer overflow in history code
+- fixed freeing input possible exploit
+- updated "cls" command to work with new process_output
+- corrected incorrect talker response to IAC WILL TELOPT_EOR
+- changed "whois silver" :o)
+- fixed incorrect stack call in idlemessage code
+- removed old process_output and installed ekto's version
+- added tagging option for socials
+- changed ip address of ewtoo.org for masking
+- added "stats_info" code for talker list stats logging
+- added -Wno-pointer-arith flag to suppress warnings from broken gcc
+- removed old dynatext code and replaced with v3.0 by ekto
+- added function to check whether a string really has dynatext in it
+- ident server errrors or refused connections aren't seen
 
-**** Final Playground Plus release - 10th December 1999
+**** Released 26th March 2001
 
 ---------------------------------------------------------------------------

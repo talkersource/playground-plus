@@ -330,3 +330,54 @@ void get_hardware_info(void)
 
   CPU.allgood++;
 }
+
+void show_stats_info(player * p)
+{
+  char *oldstack = stack;
+  char dummy[30];
+
+  if (max_ppl_on_so_far_time == 0)
+    max_ppl_on_so_far_time = (int)time(NULL);
+  if (max_ppl_ever_so_far_time == 0)
+    max_ppl_ever_so_far_time = (int)time(NULL);
+
+  ADDSTACK("\n");
+
+  /* You'll definately want to change this */  
+  ADDSTACK("url: (none)\n");
+
+  ADDSTACK("contact: %s\n", talker_email);
+  ADDSTACK("connect: telnet://%s:%d\n", talker_alpha, active_port);
+  ADDSTACK("altconnect: (none)\n");
+  ADDSTACK("uptime: %d\n", (int) (time(0) - up_date));
+  strftime(dummy, 16, "%Y%m%d %H%M%S", localtime((time_t *) &up_date));
+  ADDSTACK("bootdate: %s\n", dummy);
+  ADDSTACK("totalnewbielogins: %d\n", newbie_count);
+  ADDSTACK("totallogins: %d\n", logins);
+  if ((sys_flags & CLOSED_TO_NEWBIES) ||
+      ((sys_flags & SCREENING_NEWBIES) && (count_su() < 1)))
+    ADDSTACK("newbies: no\n");
+  else
+    ADDSTACK("newbies: yes\n");
+  if (sys_flags & CLOSED_TO_RESSIES)
+    ADDSTACK("residents: no\n");
+  else
+    ADDSTACK("residents: yes\n");
+  ADDSTACK("users: %d\n", current_players);
+  ADDSTACK("maxusers: 100\n");
+  ADDSTACK("staff: %d\n", count_su());
+  ADDSTACK("maximumusers: %d\n", max_ppl_on_so_far);
+  strftime(dummy, 16, "%Y%m%d %H%M%S", localtime((time_t *) &max_ppl_on_so_far_time));
+  ADDSTACK("maximumusers_date: %s\n", dummy);
+  ADDSTACK("maximumeverusers: %d\n", max_ppl_ever_so_far);
+  strftime(dummy, 16, "%Y%m%d %H%M%S", localtime((time_t *) &max_ppl_ever_so_far_time));
+  ADDSTACK("maximumeverusers_date: %s\n", dummy);
+
+  /* You'll definately want to change this */
+  ADDSTACK("description: Its probably a bog-standard PG+ talker. To be changed when the coder works out how :)\n");
+
+  ENDSTACK("\n");
+  tell_player(p, oldstack);
+  stack = oldstack;
+}
+

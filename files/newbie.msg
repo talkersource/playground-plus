@@ -1,7 +1,7 @@
 
 ---------------------- Information for New Users --------------------------
 
-&t is a Playground Plus (by Silver) chat program based
+<T:name> is a Playground Plus (by Silver) chat program based
 around Playground96 (by traP, astyanax, Nogard and vallie) which itself is
 based around Summink (by Athanasius) which itself is based on EW-Too by
 Simon Marsh.
@@ -12,9 +12,9 @@ Look around and enjoy yourself. If you find that you like it
 and would like a Permanent Account, then just ask one
 of our SuperUsers for "Residency".  If you don't know who they are,
 just ask another user, or type 'lsu'.  If you need information on
-how to use &t, just type "help" once you are online.
+how to use <T:name>, just type "help" once you are online.
 
-If you have any problems then email the admins at &e
+If you have any problems then email the admins at <T:email>
 
 ---------------------------------------------------------------------------
 

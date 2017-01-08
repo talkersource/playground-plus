@@ -69,6 +69,8 @@ flag_list show_flags[] =
   {"local", TAG_ROOM},
   {"shout", TAG_SHOUT},
   {"shouts", TAG_SHOUT},
+  {"social", TAG_SOCIAL},
+  {"socials", TAG_SOCIAL},
   {"tell", TAG_PERSONAL},
   {"tells", TAG_PERSONAL},
   {"autos", TAG_AUTOS},
@@ -2152,10 +2154,13 @@ void do_inform(player * p, char *tmsg)
 	beeping++;
 
       friend_ent = find_list_entry(scan, "friends");
-      if (ENT_FLAGS(friend_ent, INFORM))
-	informing++;
-      if (ENT_FLAGS(friend_ent, BEEP))
-	beeping++;
+      if (ENT_FLAGS(plain_ent, FRIEND))
+      {
+        if (ENT_FLAGS(friend_ent, INFORM))
+	  informing++;
+        if (ENT_FLAGS(friend_ent, BEEP))
+	  beeping++;
+      }
 
       if (p->residency & PSU)
       {
@@ -2283,7 +2288,7 @@ void toggle_tags(player * p, char *str)
   if (!*str)
   {
     change = p->tag_flags & (TAG_ECHO | TAG_PERSONAL | TAG_ROOM | TAG_SHOUT |
-			 TAG_AUTOS | TAG_LOGINS | TAG_ITEMS | TAG_DYNATEXT);
+			 TAG_AUTOS | TAG_LOGINS | TAG_ITEMS | TAG_DYNATEXT | TAG_SOCIAL);
     if (!change)
       tell_player(p, " You have no show flags enabled.\n");
     else
@@ -2330,6 +2335,11 @@ void toggle_tags(player * p, char *str)
 	strcpy(stack, "dynatext, ");
 	stack = strchr(stack, 0);
       }
+      if (change & TAG_SOCIAL)
+      {
+	strcpy(stack, "socials, ");
+	stack = strchr(stack, 0);
+      }
       *stack = 0;
       *(--stack) = '\n';
       *(--stack) = '.';
@@ -2343,7 +2353,7 @@ void toggle_tags(player * p, char *str)
   if (!change)
   {
     tell_player(p, " Bad flag list, no changes made. \n"
-    " Possible flags are echo,tell,room,shout,login,item,autos,dynatext\n");
+    " Possible flags are echo,tell,room,shout,login,item,autos,dynatext,social\n");
     return;
   }
   p->tag_flags ^= change;

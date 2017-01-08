@@ -527,7 +527,7 @@ void add_exit(player * p, char *str)
 
 void remove_exit_verbose(player * p, char *str, int verbose)
 {
-  char *exits, *oldstack, *last;
+  char *exits, *oldstack, *last = 0;
   room *r;
   oldstack = stack;
   if (!current_room)
@@ -1703,7 +1703,7 @@ void trans_fn(player * p, char *str)
 
 void go_room(player * p, char *str)
 {
-  char *exits, *oldstack = stack, *start, newid[80], *dotter;
+  char *exits, *oldstack = stack, *start = 0, newid[80], *dotter;
 
   if (!*str)
   {

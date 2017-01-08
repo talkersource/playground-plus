@@ -14,7 +14,7 @@
 
 #ifdef ALLOW_MULTIS
 
-#define MULTI_VERSION "1.30.2"
+#define MULTI_VERSION "1.35.1"
 
 #include "include/player.h"
 #include "include/proto.h"
@@ -574,6 +574,12 @@ void add_to_multi(player * p, multi * m)
   }
 
   pscan = (multiplayer *) MALLOC(sizeof(multiplayer));
+  if (!pscan)
+  {
+    LOGF("multi", "Could not allocate memory for player %s to multi %d!",
+         p->name, m->number); 
+    return;
+  }
   pscan->next_player = NULL;
   pscan->the_player = p;
   if (t)
@@ -588,6 +594,12 @@ void create_friends_multi(player * p, int number)
   multi *new_multi = (multi *) MALLOC(sizeof(multi));
   list_ent *l;
   player *p2;
+
+  if (!new_multi)
+  {
+    LOGF("multi", "Could not create friends' multi for %s!", p->name);
+    return;
+  }
 
   new_multi->multi_flags = MULTI_FRIENDSLIST;
 
@@ -666,7 +678,10 @@ int multi_exists(multi *m)
   while (scan)
   {
     if (scan->multi_flags & MULTI_FRIENDSLIST)
+    {
+      scan = scan->next_multi;
       continue;
+    }
 
     if (players_on_multi(scan) == count)
     {
@@ -782,6 +797,12 @@ int solve_multi(player * p, char *str)
   else if (strchr(str, ','))
   {
     mnew = (multi *) MALLOC(sizeof(multi));
+    if (!mnew)
+    {
+      LOGF("multi", "Could not create multi for %s!", p->name);
+      stack = oldstack;
+      return -1;
+    }
     mnew->next_multi = all_multis;
     mn = multi_get_new_number();
     mnew->number = mn;

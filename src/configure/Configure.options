@@ -3,7 +3,6 @@
 # see the Configure script.
 #
 comment 'Additional code options'
-bool 'Use Spires new process_output' NEW_PROCESS_OUTPUT
 bool 'Include Intercom server support' INTERCOM
 bool 'Include crash recovery code' ANTICRASH
 if [ "$ANTICRASH" = "y" ]; then

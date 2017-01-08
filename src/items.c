@@ -1144,7 +1144,7 @@ void give_item(player * p, char *str)
 {
   player *p2;
   char *arg2;
-  item *l, *l2;
+  item *l = 0, *l2 = 0;
   struct s_item *s = 0;
 
   if (!*str)

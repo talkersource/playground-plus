@@ -1262,21 +1262,9 @@ int restore_player_title(player * p, char *name, char *title)
 
     strcpy(p->ressied_by, "Hard Coded");
   }
-/* this is just an example of how one can "mask" a site for a test char */
 
-  if (!strcmp("deathboy", p->lower_name))
-  {
-    strcpy(p->num_addr, "138.253.85.33");
-    strcpy(p->inet_addr, "petey.halls.com");
-  }
-  if (!strcmp("silver", p->lower_name))
-  {
-    strcpy(p->num_addr, "123.69.69.666");
-    strcpy(p->inet_addr, "uberhq.gov.uk");	/* lemme keep this plz! */
-  }
   if (p->residency & PSU)
     p->no_shout = 0;
-
 
   /* integrity .. sigh */
 
@@ -2011,6 +1999,7 @@ void newbie_get_gender(player * p, char *str)
   /* Alert super users of impending newbie. Note that only lower_admins
      or above can see the account name */
 
+  newbie_count++;
   sys_color_atm = SUCsc;
   sys_flags &= ~ROOM_TAG;
 
@@ -2069,6 +2058,14 @@ void got_new_name(player * p, char *str)
     p->input_to_fn = got_new_name;
     do_prompt(p, get_plists_msg("second_name"));
     stack = oldstack;
+    return;
+  }
+
+  if (!strcasecmp("stats_info", str))
+  {
+    stack = oldstack;
+    show_stats_info(p);
+    quit(p, 0);
     return;
   }
 
@@ -2451,6 +2448,14 @@ void got_name(player * p, char *str)
     p->input_to_fn = got_name;
     do_prompt(p, get_plists_msg("second_name"));
     stack = oldstack;
+    return;
+  }
+
+  if (!strcasecmp("stats_info", str))
+  {
+    stack = oldstack;
+    show_stats_info(p);
+    quit(p, 0);
     return;
   }
 

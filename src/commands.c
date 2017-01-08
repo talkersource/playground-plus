@@ -519,7 +519,7 @@ void set_idle_msg(player * p, char *str)
     }
   }
   else
-    strcpy(stack, " Please set an idlemsg of a greater than zero length.\n");
+    TELLPLAYER(p, " Please set an idlemsg of a greater than zero length.\n");
 }
 
 
@@ -578,16 +578,18 @@ void set_pretitle(player * p, char *str)
     tell_player(p, " You may not have \"+[\" in your prefix.\n");
     return;
   }
+  if (contains_dynatext(p, str))
+  {
+    tell_player(p, " You may not have dynatext in your prefix.\n");
+    return;
+  }
+
   for (scan = str; *scan; scan++)
   {
     switch (*scan)
     {
       case '^':
 	tell_player(p, " You may not have colors in your prefix.\n");
-	return;
-	break;
-      case '&':
-	tell_player(p, " You may not have dynatext in your prefix.\n");
 	return;
 	break;
       case ' ':
@@ -652,15 +654,6 @@ void set_plan(player * p, char *str)
 
 void set_prompt(player * p, char *str)
 {
-  char *dt;
-
-  if ((dt = strchr(str, '&')) &&
-      (*(dt + 1) == 'r' || *(dt + 1) == 'a' || *(dt + 1) == 'c'))
-  {
-    tell_player(p, " You really dont want that dynatext in your prompt do ya?\n");
-    return;
-  }
-
   strncpy(p->prompt, str, MAX_PROMPT - 3);
   if (!p->prompt[0])
     tell_player(p, " You turn off your prompt.\n");
@@ -1229,7 +1222,7 @@ void set_spod_class(player * p, char *str)
     return;
   }
 
-  if (strstr(str, "^") || strstr(str, "&"))
+  if (contains_dynatext(p, str) || strstr(str, "^"))
   {
     tell_player(p, " You may not have colour or dynatext in your spod class.\n");
     return;

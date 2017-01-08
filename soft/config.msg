@@ -162,7 +162,7 @@ def_logout:	is finished with playtime
 #
 # This is the string shown on login (at the end of the login process)
 #
-welcome_msg:	~ Welcome to &t - enjoy your stay ~
+welcome_msg:	~ Welcome to <T:name> - enjoy your stay ~
 
 #
 # This is the hourly time message for those seeing the clock

@@ -1511,6 +1511,8 @@ void remove_privs(player * p, char *str)
       return;
     }
     sp->residency &= ~change;
+    if (!(strcmp("debug", permission)))
+      sp->misc_flags &= ~SEE_DEBUG_CHANNEL;
     if (sp->residency == NON_RESIDENT)
       remove_player_file(sp->lower_name);
     set_update(*str);
@@ -1532,6 +1534,8 @@ void remove_privs(player * p, char *str)
       stack = oldstack;
       return;
     }
+    if (!(strcmp("debug", permission)));
+      p2->misc_flags &= ~SEE_DEBUG_CHANNEL;
     p2->residency &= ~change;
     p2->saved_residency = p2->residency;
     TELLPLAYER(p2, " -=*> %s has altered your commands.\n", p->name);

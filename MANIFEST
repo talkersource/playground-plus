@@ -112,6 +112,7 @@ mail.c				All mail code
 make_pretty			Batch file to tidily ident code
 multi.c				Multis/Chains code
 news.c				News system code
+output.c			Output processing code
 parse.c				Command parsing code & timing
 plists.c			Player code (Loading, saving, etc.) 
 qs				Quick search batch file
@@ -130,7 +131,7 @@ tag.c				List constructions for player tagging code
 talking.c			Communication commands
 ttt.c				TicTacToe code
 version.c			Playground Plus version information
-xstring.c
+xstring.c			Handy string parsing functions
 
 src/configure:
 Configure			Configure script
@@ -158,6 +159,7 @@ ident.h				:
 intercom.h			:
 intercom_glue.h			:
 items.h				:
+output.h			Output processing header files
 player.h			Player structure
 proto.h				Function prototypes
 robot_player.h			General header files
@@ -169,5 +171,5 @@ un.h				:
 version.h			The time the code was compiled
 
 
-Last updated 26.10.1999
+Last updated 22.03.2001
 Some details may be inaccurate.

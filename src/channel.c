@@ -168,6 +168,8 @@ void zwall(char *str)
 	command_type &= ~HIGHLIGHT;
       }
     }
+    else  /* if we get here, then they've got this set wrongly so */
+      scan->misc_flags &=~ SEE_DEBUG_CHANNEL;  /* turn it off */
   }
 }
 
@@ -179,21 +181,23 @@ void debug_wall(char *str)
 
   for (scan = flatlist_start; scan; scan = scan->flat_next)
   {
-    if ((scan->misc_flags & SEE_DEBUG_CHANNEL) && scan->location)
+    if (scan->residency & DEBUG)
     {
-      if (scan->misc_flags & CHAN_HI)
+      if ((scan->misc_flags & SEE_DEBUG_CHANNEL) && scan->location)
       {
-	command_type |= HIGHLIGHT;
-      }
-      TELLPLAYER(scan, "%s %s\n", get_config_msg("debug_chan"), str);
-      if (scan->misc_flags & CHAN_HI)
-      {
-	command_type &= ~HIGHLIGHT;
+        if (scan->misc_flags & CHAN_HI)
+        {
+  	  command_type |= HIGHLIGHT;
+        }
+        TELLPLAYER(scan, "%s %s\n", get_config_msg("debug_chan"), str);
+        if (scan->misc_flags & CHAN_HI)
+        {
+	  command_type &= ~HIGHLIGHT;
+        }
       }
     }
   }
 }
-
 
 /*
  * blimey wrote this ....
